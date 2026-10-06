@@ -1,6 +1,6 @@
 # Brief Client — VocaBoost
 
-> Rédigé selon `agents/client/SKILL.md`.
+> Rédigé selon `.claude/agents/client.md`.
 
 ## Le problème
 Les francophones qui veulent progresser en anglais manquent de vocabulaire. Les listes

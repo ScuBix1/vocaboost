@@ -1,6 +1,6 @@
 # Implémentation — VocaBoost v1
 
-> Rédigé selon `agents/developer/SKILL.md`. Entrées : `01-brief-client.md`, `02-spec-pm.md`, `03-design.md`. Destinataire : QA.
+> Rédigé selon `.claude/agents/developer.md`. Entrées : `01-brief-client.md`, `02-spec-pm.md`, `03-design.md`. Destinataire : QA.
 
 ## Architecture
 

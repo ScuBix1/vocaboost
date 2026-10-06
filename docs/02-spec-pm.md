@@ -1,6 +1,6 @@
 # Spécification PM — VocaBoost v1
 
-> Rédigé selon `agents/pm/SKILL.md`. Entrée : `docs/01-brief-client.md`. Destinataires : Designer, Développeur, QA.
+> Rédigé selon `.claude/agents/pm.md`. Entrée : `docs/01-brief-client.md`. Destinataires : Designer, Développeur, QA.
 > Les choix non précisés dans le brief sont tranchés ici (section 9 « Décisions à valider par le client »).
 
 ---

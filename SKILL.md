@@ -18,7 +18,7 @@ L'objectif est simple : créer le bon produit avec le bon processus, sans chaos.
 Brief Client → Spec PM → Direction Design → Implémentation → Test QA → Approbation Client
 ```
 
-Chaque agent a son propre fichier SKILL.md qui explique :
+Chaque agent a son propre fichier dans `.claude/agents/` qui explique :
 - sa mission
 - ses entrées et sorties
 - comment il travaille avec les autres
@@ -34,7 +34,7 @@ Si tu sautes le QA, les bugs atteignent le client.
 
 ## Première étape
 
-1. Lis chaque SKILL.md des agents
+1. Lis chaque fichier de `.claude/agents/`
 2. Commence par le brief Client
 3. Suis le workflow étape par étape
 4. Construis l'app ensemble

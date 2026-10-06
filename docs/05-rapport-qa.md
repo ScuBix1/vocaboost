@@ -1,6 +1,6 @@
 # Rapport QA — VocaBoost v1
 
-> Rédigé selon `agents/qa/SKILL.md`. Entrées : `02-spec-pm.md` (les critères d'acceptation font référence), `03-design.md`, `04-implementation.md` et le code de `src/`. Destinataires : Développeur, Chef de Projet, Designer, Client.
+> Rédigé selon `.claude/agents/qa.md`. Entrées : `02-spec-pm.md` (les critères d'acceptation font référence), `03-design.md`, `04-implementation.md` et le code de `src/`. Destinataires : Développeur, Chef de Projet, Designer, Client.
 > Date : 06/10/2026. Build testé : arbre de travail courant, non commité.
 
 ---
@@ -176,7 +176,7 @@ BUG-03, BUG-04, BUG-05 et les retours linguistiques peuvent suivre dans une vers
 
 ## 7. Re-test post-corrections
 
-Commit re-testé : `53c78eb`, « Corrections post-QA ». Re-test fait selon `agents/qa/SKILL.md`, étape 7.
+Commit re-testé : `53c78eb`, « Corrections post-QA ». Re-test fait selon `.claude/agents/qa.md`, étape 7.
 
 ### 7.1 Exécution
 

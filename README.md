@@ -46,8 +46,7 @@ src/
   store/       Store Zustand persisté
   components/  Composants du design system
   theme/       Tokens de design
-agents/        Rôles des agents (repris du boilerplate)
-.claude/agents Les mêmes rôles, utilisables comme sous-agents Claude Code
+.claude/agents Rôles des agents (repris du boilerplate), utilisables comme sous-agents Claude Code
 docs/          Livrables de chaque agent
 ```
 

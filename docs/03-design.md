@@ -1,6 +1,6 @@
 # Design — VocaBoost v1
 
-> Rédigé selon `agents/designer/SKILL.md`. Entrées : `docs/01-brief-client.md`, `docs/02-spec-pm.md` (source de vérité : en cas d'écart, la spec PM prévaut). Destinataires : Développeur, QA.
+> Rédigé selon `.claude/agents/designer.md`. Entrées : `docs/01-brief-client.md`, `docs/02-spec-pm.md` (source de vérité : en cas d'écart, la spec PM prévaut). Destinataires : Développeur, QA.
 > Mode clair uniquement. Aucune librairie d'icônes : emoji ou texte seulement. Les références `RG-xx` / `AC-xx` renvoient à la spec PM.
 
 ---
