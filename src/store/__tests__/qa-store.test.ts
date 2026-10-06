@@ -76,6 +76,30 @@ describe('QA — hydratation et migration', () => {
     expect(onDisk.state.bestStreak).toBe(7); // obtenu : 0 — progression perdue
   });
 
+  it('[re-test BUG-03, risque résiduel] 3 lectures en échec : disque intact, mais les évaluations de la session ne sont pas persistées', async () => {
+    jest.useFakeTimers();
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ state: savedState, version: 1 }));
+      useLearnerStore.setState({ ...createInitialData(), hasHydrated: false });
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ state: savedState, version: 1 }));
+      const err = new Error('SQLITE_BUSY');
+      jest.spyOn(AsyncStorage, 'getItem').mockRejectedValueOnce(err).mockRejectedValueOnce(err).mockRejectedValueOnce(err);
+      const p = useLearnerStore.persist.rehydrate();
+      await jest.advanceTimersByTimeAsync(1000);
+      await p;
+      expect(useLearnerStore.getState().hasHydrated).toBe(true);
+      useLearnerStore.getState().evaluateCard(WORDS[5].id, true);
+      await jest.advanceTimersByTimeAsync(10);
+      const onDisk = JSON.parse((await AsyncStorage.getItem(STORAGE_KEY))!);
+      expect(onDisk.state.bestStreak).toBe(7); // données d'origine préservées
+      expect(onDisk.state.progress[WORDS[5].id]).toBeUndefined(); // évaluation non persistée (silencieux)
+    } finally {
+      jest.useRealTimers();
+      // Lecture réussie suivante : réactive la persistance pour les autres tests (drapeau de module).
+      await useLearnerStore.persist.rehydrate();
+    }
+  });
+
   it('réinitialisation puis redémarrage : état vierge persisté, objectif et filtres conservés', async () => {
     useLearnerStore.setState({ ...savedState, filters: { categories: ['travel'], levels: ['A1'] }, hasHydrated: true });
     useLearnerStore.getState().resetProgress();

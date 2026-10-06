@@ -40,3 +40,8 @@ Une application mobile qui :
 
 ## Validation de la spec PM
 ✅ **Approuvée** (rôle Client). Les décisions de la section 9 de `02-spec-pm.md` sont acceptées telles quelles.
+
+## Approbation finale
+✅ **Approuvée** (rôle Client) pour la v1, sur la base du rapport QA (aucun bug critique ou majeur ouvert).
+Reste à faire avant publication sur les stores : un passage sur appareil Android et iOS réel (mode avion, arrêt forcé, son).
+Points mineurs connus et acceptés : RT-02 (boutons grisés 300 ms au retournement), RT-03 (avertissement d'hydratation web en ouvrant `/session` directement).

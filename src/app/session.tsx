@@ -209,7 +209,7 @@ export default function SessionScreen() {
             />
           </View>
         ) : (
-          <Button label="Retourner" onPress={flip} testID="session-flip" />
+          <Button label="Retourner" onPress={flip} disabled={guard.locked} testID="session-flip" />
         )}
       </View>
     </SafeAreaView>

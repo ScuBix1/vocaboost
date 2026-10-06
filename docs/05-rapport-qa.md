@@ -171,3 +171,62 @@ Conditions pour passer à « prêt » :
 3. Faire arbitrer OBS-01 par le PM.
 
 BUG-03, BUG-04, BUG-05 et les retours linguistiques peuvent suivre dans une version corrective sans bloquer la livraison.
+
+---
+
+## 7. Re-test post-corrections
+
+Commit re-testé : `53c78eb`, « Corrections post-QA ». Re-test fait selon `agents/qa/SKILL.md`, étape 7.
+
+### 7.1 Exécution
+
+| Élément | Résultat |
+|---|---|
+| Suite Jest | **15 suites, 150 tests verts.** Les 4 anciens `test.failing` (BUG-01 à BUG-04) sont devenus des tests normaux et passent. **1 nouveau `test.failing`** reproduit RT-01. |
+| `tsc --noEmit` | OK. |
+| Fuseaux horaires | Tests du domaine verts sous `Pacific/Auckland`, `America/Sao_Paulo` et `Pacific/Kiritimati`. |
+| Web (export statique + Playwright, 375×667) | Parcours complet : session, test lancé depuis l'Accueil puis abandonné, test complet, réinitialisation, rechargement de la page. **0 requête externe.** Une erreur console est apparue (voir RT-03) ; elle est antérieure aux corrections. |
+| Nouveaux tests QA | `qa-flows` : bloc « re-test » sur le verrou. `qa-domain` : OBS-01 selon la décision PM, avec le passage d'année. `qa-store` : risque résiduel de BUG-03. |
+
+### 7.2 Statut des bugs
+
+| Bug | Statut | Vérification |
+|---|---|---|
+| BUG-01 (majeur) double tap « Retourner » | **Corrigé** | Web : un double clic sur la moitié droite, puis sur la moitié gauche, ne fait plus aucune évaluation. « Je savais » et « Je ne savais pas » sont désactivés pendant 300 ms (`aria-disabled=true`), puis actifs. Test Jest vert. |
+| BUG-02 double tap « Je savais » | **Corrigé** | Web : une seule évaluation, et la carte suivante reste côté recto. Le tap direct sur la carte pendant le verrou est aussi ignoré (nouveau test). |
+| BUG-03 lecture en échec | **Corrigé**, avec un risque résiduel | Le disque reste intact après 3 lectures en échec. **Risque résiduel** : l'app tourne alors en mémoire et les évaluations de la session ne sont **pas** persistées, sans aucun signal. C'est un cas très rare et un compromis acceptable, mais à connaître. Couvert par un test `qa-store` qui décrit ce comportement. |
+| BUG-04 retour après abandon | **Corrigé** | Web et Jest : un test lancé depuis l'Accueil puis abandonné ramène sur `/test`. Le test reste disponible et l'historique est vide. |
+| BUG-05 bandeau invisible | **Corrigé** | Web : bandeau visible à y = 84 px même après défilement, et masqué au bout de 3 s. |
+| OBS-01 semaine du test | **Appliqué** (décision PM) | Un test démarré le dimanche à 23:58 et terminé le lundi est enregistré en W41. Le test de W42 reste disponible le lundi, et un second test rattaché à W41 est refusé. Si le test démarre le 03/01/2027, il est enregistré en `2026-W53`. La date de fin et le jour actif sont ceux du lundi. |
+| Banque de mots | **OK** | `journey`→`sightseeing`, `friendly`→`polite`, `storm → tempête`, et 2 exemples reformulés. Tests d'intégrité verts (200 mots, unicité, 10 × 20, 50/60/50/40). |
+
+### 7.3 Le verrou de 300 ms gêne-t-il un usage rapide normal ?
+
+**Non pour l'usage normal.** Un enchaînement retourner → évaluer → retourner à 350 ms d'intervalle se fait sans perdre aucun tap, dans Jest comme sur le web ; il est déjà plus rapide qu'une lecture réelle du verso. Deux effets de bord mineurs :
+
+- **RT-01 (mineur), tap « avalé » deux fois** : `src/app/session.tsx:86-90` et `src/components/Button.tsx:45-49`.
+  - Si l'utilisateur appuie sur « Retourner » pendant le verrou (moins de 300 ms après une évaluation), le tap est ignoré par l'écran. Il arme pourtant la garde de 400 ms propre au `Button`.
+  - Un 2e tap légitime à +450 ms, alors que le verrou est expiré, est donc lui aussi ignoré. La carte ne se retourne qu'à partir d'environ 650 ms.
+  - Reproduit sur le web, et dans `qa-flows` « RT-01 » (`test.failing`). Ressenti possible : « le bouton ne répond pas ».
+  - Piste : désactiver « Retourner » pendant le verrou (`disabled={guard.locked}`), comme les boutons d'évaluation, ou ne pas armer la garde du Button quand l'action est refusée.
+- **RT-02 (cosmétique)** : à chaque retournement, les deux boutons d'évaluation apparaissent en gris « désactivé » pendant 300 ms avant de prendre leurs couleurs. Ce flash est visible. Piste : garder les couleurs avec une opacité réduite, ou faire un fondu.
+- **Limite connue (signalée par le Développeur)** : un double tap sur « Commencer une session » peut encore retourner la 1re carte. Je confirme que c'est sans effet sur les données.
+
+### 7.4 Autres constats
+
+- **RT-03 (mineur, web uniquement, hors périmètre, antérieur aux corrections)** : ouvrir ou recharger directement `/session` sur le web provoque l'erreur React #418 (écart d'hydratation). Le HTML statique contient une session tirée au moment du build, différente de celle tirée par le client. React se rétablit et la session reste utilisable. Ça n'a aucun impact sur mobile.
+- **Ids retirés** (`journey`, `friendly`) : une progression déjà enregistrée pour ces ids devient orpheline. Elle est ignorée sans erreur (comptes et test non affectés, test `qa-domain`). C'est sans conséquence avant la 1re livraison, mais à éviter après : changer un id fait perdre la progression du mot.
+- **Aucune régression** sur les parcours déjà validés : accueil, session, récap, progression, test, historique, réglages, filtres, persistance.
+
+### 7.5 Verdict final
+
+**Prêt** pour la validation client côté logiciel : aucun bug critique ni majeur ouvert. Restent ouverts des points **mineurs** non bloquants, à traiter dans une version corrective :
+
+- RT-01 et RT-02 (verrou anti-double-tap) ;
+- RT-03, web uniquement ;
+- le risque résiduel de BUG-03.
+
+**Réserve** : le passage sur un appareil Android **et** un appareil iOS (mode avion, arrêt forcé, lecteur d'écran, TTS ; DoD §8.1 et §8.5) reste **non testable dans cet environnement**. Il doit être fait avant la remise au client.
+
+### RT-01 — corrigé
+Le bouton « Retourner » est désactivé pendant le verrou (`src/app/session.tsx`), il n'arme donc plus la garde de 400 ms du `Button`. Le test RT-01 est passé de `test.failing` à `test` : 150/150 tests verts.

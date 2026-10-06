@@ -193,16 +193,23 @@ describe('QA — test hebdomadaire', () => {
     }
   });
 
-  it('[observation] test commencé dimanche 23:58 et terminé lundi 00:01 → enregistré pour la NOUVELLE semaine, qui est alors bloquée', () => {
+  it('OBS-01 (re-test, décision PM) : test commencé dimanche 23:58, terminé lundi 00:01 → semaine du démarrage ; lundi le test de la nouvelle semaine reste disponible', () => {
     let data = createInitialData();
     const sunday = new Date(2026, 9, 11, 23, 58);
     WORDS.slice(0, 10).forEach((w) => (data = applyCardEvaluation(data, w.id, true, new Date(2026, 9, 6))));
     expect(getTestStatus(WORDS, data.progress, data.testHistory, sunday).kind).toBe('available');
     const answers = WORDS.slice(0, 10).map((w) => ({ wordId: w.id, correct: true }));
     const monday = new Date(2026, 9, 12, 0, 1);
-    const { data: after, record } = applyTestCompletion(data, answers, monday);
-    expect(record?.weekId).toBe('2026-W42'); // et non 2026-W41 (semaine du tirage)
-    expect(getTestStatus(WORDS, after.progress, after.testHistory, monday).kind).toBe('done');
+    const { data: after, record } = applyTestCompletion(data, answers, monday, sunday);
+    expect(record?.weekId).toBe('2026-W41');
+    expect(record?.finishedAt).toBe(monday.toISOString());
+    expect(after.activeDays).toContain('2026-10-12');
+    expect(getTestStatus(WORDS, after.progress, after.testHistory, monday).kind).toBe('available');
+    // Un second test démarré en W41 (autre écran resté ouvert) est refusé.
+    expect(applyTestCompletion(after, answers, monday, sunday).record).toBeNull();
+    // Passage d'année : démarré le 2027-01-03 (2026-W53), fini le 2027-01-04.
+    const r2 = applyTestCompletion(createInitialData(), answers, new Date(2027, 0, 4, 0, 2), new Date(2027, 0, 3, 23, 59)).record;
+    expect(r2?.weekId).toBe('2026-W53');
   });
 });
 

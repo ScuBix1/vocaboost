@@ -186,6 +186,56 @@ describe('QA — session', () => {
   });
 });
 
+describe('QA re-test — verrou anti-double-tap (300 ms) et usage rapide normal', () => {
+  const advance = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+
+  it('usage rapide mais délibéré (évaluation 350 ms après le retournement, retournement 350 ms après l’évaluation) : 10 cartes sans tap perdu', async () => {
+    await renderRouter(routes, { initialUrl: '/session' });
+    for (let i = 0; i < 10; i++) {
+      await advance(350);
+      await fireEvent.press(screen.getByTestId('session-flip'));
+      await advance(350);
+      await fireEvent.press(screen.getByTestId('session-known'));
+    }
+    await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
+    expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([10]);
+  });
+
+  it('les boutons d’évaluation sont désactivés pendant le verrou puis réactivés', async () => {
+    await renderRouter(routes, { initialUrl: '/session' });
+    await fireEvent.press(screen.getByTestId('session-flip'));
+    expect(screen.getByTestId('session-known')).toBeDisabled();
+    await advance(310);
+    expect(screen.getByTestId('session-known')).toBeEnabled();
+  });
+
+  it('tap sur la carte (et non sur « Retourner ») pendant le verrou : ignoré, puis fonctionne', async () => {
+    await renderRouter(routes, { initialUrl: '/session' });
+    await fireEvent.press(screen.getByTestId('session-flip'));
+    await advance(350);
+    await fireEvent.press(screen.getByTestId('session-known'));
+    await fireEvent.press(screen.getByTestId('flashcard-front'));
+    expect(screen.queryByTestId('session-known')).toBeNull();
+    await advance(350);
+    await fireEvent.press(screen.getByTestId('flashcard-front'));
+    expect(screen.getByTestId('session-known')).toBeTruthy();
+  });
+
+  // RT-01 (mineur) : un tap sur « Retourner » ignoré pendant le verrou de 300 ms arme quand même la garde
+  // propre au Button (400 ms) : un 2e tap légitime juste après la fin du verrou est lui aussi avalé.
+  test('RT-01 : tap « Retourner » à +200 ms (verrou) puis à +450 ms (verrou expiré) → la carte se retourne', async () => {
+    await renderRouter(routes, { initialUrl: '/session' });
+    await fireEvent.press(screen.getByTestId('session-flip'));
+    await advance(350);
+    await fireEvent.press(screen.getByTestId('session-known'));
+    await advance(200);
+    await fireEvent.press(screen.getByTestId('session-flip')); // ignoré (verrou écran) — attendu
+    await advance(250); // t = +450 ms : verrou de 300 ms expiré
+    await fireEvent.press(screen.getByTestId('session-flip'));
+    expect(screen.queryByTestId('session-known')).toBeTruthy(); // obtenu : null (tap avalé par la garde du Button)
+  });
+});
+
 describe('QA — réinitialisation via Réglages (AC-10.2, AC-10.3)', () => {
   it('Annuler ne change rien ; Réinitialiser efface tout sauf objectif et filtres et affiche le bandeau', async () => {
     seedSeen(10);
