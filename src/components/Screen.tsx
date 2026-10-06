@@ -1,5 +1,5 @@
 /**
- * Gabarits d'écran : contenu défilant + zone d'actions fixée en bas (design §2.3, §5.4).
+ * Gabarits d'écran : contenu défilant + zone d'actions fixée en bas (design v2 §5).
  */
 import type { ReactNode } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -16,20 +16,27 @@ export interface ScreenProps {
   scroll?: boolean;
   edges?: Edge[];
   contentStyle?: StyleProp<ViewStyle>;
+  /** Calque décoratif derrière le contenu (confettis). */
+  background?: ReactNode;
 }
 
-export function Screen({ children, footer, header, scroll = true, edges = ['top', 'bottom'], contentStyle }: ScreenProps) {
+export function Screen({ children, footer, header, scroll = true, edges = ['top', 'bottom'], contentStyle, background }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safe} edges={edges}>
+      {background}
       {header}
       {scroll ? (
-        <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={background ? styles.above : undefined}
+          contentContainerStyle={[styles.content, contentStyle]}
+          keyboardShouldPersistTaps="handled"
+        >
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.content, styles.flex, contentStyle]}>{children}</View>
+        <View style={[styles.content, styles.flex, background ? styles.above : null, contentStyle]}>{children}</View>
       )}
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
+      {footer ? <View style={[styles.footer, background ? styles.above : null]}>{footer}</View> : null}
     </SafeAreaView>
   );
 }
@@ -69,11 +76,13 @@ export function LoadingScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
-  content: { paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, gap: spacing.xl },
-  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  title: { ...typography.h1, color: colors.text },
-  subtitle: { ...typography.body, color: colors.textMuted, marginTop: spacing.xs },
-  section: { ...typography.h2, color: colors.text },
+  // Contenu au-dessus du calque décoratif (confettis), y compris sur le web.
+  above: { zIndex: 1 },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: 14 },
+  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg, gap: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
+  title: { ...typography.h1, color: colors.ink },
+  subtitle: { ...typography.overline, color: colors.inkMuted, marginTop: 2 },
+  section: { ...typography.h2, color: colors.ink, marginTop: 2 },
   loading: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 });

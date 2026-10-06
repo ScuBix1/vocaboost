@@ -1,5 +1,5 @@
 /**
- * Test (onglet, design §4.6) — US-07 (état du test), US-08 (historique).
+ * Test (onglet) v2 (design §5.6) — US-07 (état du test), US-08 (historique).
  */
 import { router } from 'expo-router';
 import { useMemo } from 'react';
@@ -11,13 +11,14 @@ import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { ProgressBar } from '@/components/ProgressBar';
 import { Screen, ScreenTitle, SectionTitle } from '@/components/Screen';
+import { Vobi } from '@/components/Vobi';
 import { formatDateFr, formatWeekLabel, getWeekId } from '@/domain/dates';
 import { plural } from '@/domain/format';
 import { sortHistory, TEST_MIN_SEEN } from '@/domain/weeklyTest';
 import { useTestStatus } from '@/hooks/useLearnerSelectors';
 import { useNow } from '@/hooks/useNow';
 import { useLearnerStore } from '@/store/useLearnerStore';
-import { colors, radius, spacing, typography } from '@/theme/tokens';
+import { colors, spacing, typography } from '@/theme/tokens';
 
 export default function TestScreen() {
   const now = useNow();
@@ -30,16 +31,24 @@ export default function TestScreen() {
       <ScreenTitle title="Test de la semaine" subtitle={formatWeekLabel(getWeekId(now))} />
 
       {status.kind === 'locked' ? (
-        <View style={styles.locked} testID="test-locked">
-          <Text style={styles.lockedText}>
+        <Card tone="sun" testID="test-locked">
+          <Text style={[styles.body, { color: colors.sunInk }]}>
             🔒 Étudie encore {status.remaining} {plural(status.remaining, 'mot')} pour débloquer le test de la semaine
           </Text>
-          <ProgressBar value={status.seen / TEST_MIN_SEEN} accessibilityLabel="Mots vus pour débloquer le test" />
+          <ProgressBar
+            value={status.seen / TEST_MIN_SEEN}
+            color="sun"
+            track="white"
+            accessibilityLabel="Mots vus pour débloquer le test"
+          />
           <Button label="Commencer une session" onPress={() => router.push('/session')} />
-        </View>
+        </Card>
       ) : status.kind === 'available' ? (
         <Card testID="test-available">
-          <Text style={styles.h3}>✨ Ton test est prêt</Text>
+          <View style={styles.availableHead}>
+            <Vobi mood="hello" size={72} />
+            <Text style={[styles.h3, styles.flex]}>✨ Ton test est prêt</Text>
+          </View>
           <Text style={styles.body}>
             {status.questionCount} questions à choix multiples sur les mots que tu as étudiés. Pas de limite de temps.
           </Text>
@@ -56,19 +65,22 @@ export default function TestScreen() {
         </Card>
       )}
 
-      <View style={styles.list}>
-        <SectionTitle>Historique</SectionTitle>
-        {sorted.length === 0 ? (
-          <Card>
-            <EmptyState emoji="🗓️" title="Aucun test pour l'instant" compact />
-          </Card>
-        ) : (
-          sorted.map((r) => (
+      <SectionTitle>Historique</SectionTitle>
+      {sorted.length === 0 ? (
+        <Card>
+          <EmptyState mood="empty" title="Aucun test pour l'instant" message="Ton premier score s'affichera ici." compact />
+        </Card>
+      ) : (
+        <View style={styles.list}>
+          {sorted.map((r) => (
             <Card
               key={`${r.weekId}-${r.finishedAt}`}
-              style={styles.row}
+              contentStyle={styles.row}
               accessibilityLabel={`${formatWeekLabel(r.weekId)}, terminé le ${formatDateFr(r.finishedAt)} : ${r.correct} sur ${r.total}, ${r.percent} pour cent, ${r.passed ? 'Réussi' : 'À retravailler'}`}
             >
+              <View style={[styles.medal, { backgroundColor: r.passed ? colors.successSoft : colors.dangerSoft }]}>
+                <Text style={styles.medalEmoji}>{r.passed ? '🏅' : '📖'}</Text>
+              </View>
               <View style={styles.rowLeft}>
                 <Text style={styles.strong}>{formatWeekLabel(r.weekId)}</Text>
                 <Text style={styles.caption}>{formatDateFr(r.finishedAt)}</Text>
@@ -80,27 +92,24 @@ export default function TestScreen() {
                 <ResultBadge passed={r.passed} />
               </View>
             </Card>
-          ))
-        )}
-      </View>
+          ))}
+        </View>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  locked: {
-    backgroundColor: colors.warningSoft,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  lockedText: { ...typography.body, color: colors.warningText },
-  h3: { ...typography.h3, color: colors.text },
-  body: { ...typography.body, color: colors.text },
-  caption: { ...typography.caption, color: colors.textMuted },
-  strong: { ...typography.bodyStrong, color: colors.text },
+  flex: { flex: 1 },
+  availableHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  h3: { ...typography.h3, color: colors.ink },
+  body: { ...typography.body, color: colors.ink },
+  caption: { ...typography.caption, color: colors.inkMuted },
+  strong: { ...typography.bodyStrong, color: colors.ink },
   list: { gap: spacing.md },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowLeft: { flexShrink: 1, gap: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 14 },
+  medal: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  medalEmoji: { fontSize: 20 },
+  rowLeft: { flex: 1, gap: 2 },
   rowRight: { alignItems: 'flex-end', gap: spacing.xs },
 });

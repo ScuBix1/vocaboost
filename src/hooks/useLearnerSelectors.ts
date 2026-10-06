@@ -7,7 +7,7 @@ import { WORDS } from '@/data/words';
 import { toLocalDateKey } from '@/domain/dates';
 import { filterPool } from '@/domain/filters';
 import { computeCategoryStats, computeGlobalStats } from '@/domain/stats';
-import { cardsOnDay, computeBestStreak, computeCurrentStreak, computeGoalStatus } from '@/domain/streak';
+import { cardsOnDay, computeBestStreak, computeCurrentStreak, computeGoalStatus, getWeekDays } from '@/domain/streak';
 import { getTestStatus } from '@/domain/weeklyTest';
 import { useLearnerStore } from '@/store/useLearnerStore';
 
@@ -53,4 +53,11 @@ export function useTestStatus(now: Date) {
   const history = useLearnerStore((s) => s.testHistory);
   const time = now.getTime();
   return useMemo(() => getTestStatus(WORDS, progress, history, new Date(time)), [progress, history, time]);
+}
+
+/** Jours de la semaine ISO courante et leur statut actif (WeekStrip, design §4.6). */
+export function useWeekDays(now: Date) {
+  const activeDays = useLearnerStore((s) => s.activeDays);
+  const todayKey = toLocalDateKey(now);
+  return useMemo(() => getWeekDays(activeDays, todayKey), [activeDays, todayKey]);
 }

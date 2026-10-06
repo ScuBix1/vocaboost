@@ -1,14 +1,15 @@
 /**
- * État vide (design §3.8).
+ * État vide v2 (design §4.13) : Vobi à la place de l'emoji.
  */
 import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '@/theme/tokens';
 
 import { Button } from './Button';
+import { Vobi, type VobiMood } from './Vobi';
 
 export interface EmptyStateProps {
-  emoji: string;
+  mood: VobiMood;
   title: string;
   message?: string;
   actionLabel?: string;
@@ -19,7 +20,7 @@ export interface EmptyStateProps {
 }
 
 export function EmptyState({
-  emoji,
+  mood,
   title,
   message,
   actionLabel,
@@ -29,9 +30,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={[styles.container, compact && styles.compact]}>
-      <Text style={styles.emoji} accessible={false} importantForAccessibility="no">
-        {emoji}
-      </Text>
+      <Vobi mood={mood} size={compact ? 80 : 96} />
       <Text style={styles.title} accessibilityRole="header">
         {title}
       </Text>
@@ -44,10 +43,9 @@ export function EmptyState({
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', padding: spacing.xl, gap: spacing.md },
-  compact: { padding: spacing.lg },
-  emoji: { fontSize: 48, lineHeight: 56 },
-  title: { ...typography.h3, color: colors.text, textAlign: 'center' },
-  message: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
+  container: { alignItems: 'center', padding: spacing.xl, gap: spacing.sm },
+  compact: { padding: spacing.sm },
+  title: { ...typography.h3, color: colors.ink, textAlign: 'center' },
+  message: { ...typography.body, color: colors.inkMuted, textAlign: 'center' },
   action: { alignSelf: 'stretch', marginTop: spacing.sm },
 });

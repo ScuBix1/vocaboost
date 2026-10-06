@@ -48,7 +48,7 @@ beforeEach(() => {
 describe('Parcours Accueil → session → résultat (US-01, US-03)', () => {
   it('AC-01.1 : 1 tap sur « Commencer une session » affiche la 1re carte (recto)', async () => {
     await renderRouter(routes, { initialUrl: '/' });
-    expect(screen.getByText('Prêt pour tes 10 premiers mots ?')).toBeTruthy();
+    expect(screen.getByText('Salut ! Prêt pour tes 10 premiers mots ?')).toBeTruthy(); // bulle de Vobi (design v2 §5.1)
     await fireEvent.press(screen.getByTestId('home-start-session'));
     await waitFor(() => expect(screen.getByTestId('flashcard-front')).toBeTruthy());
     expect(screen.getAllByText('Carte 1 / 10').length).toBeGreaterThan(0);
@@ -64,10 +64,11 @@ describe('Parcours Accueil → session → résultat (US-01, US-03)', () => {
       await fireEvent.press(screen.getByTestId(i <= 6 ? 'session-known' : 'session-unknown'));
       await waitGuard();
     }
-    await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
-    expect(screen.getByTestId('result-score')).toHaveTextContent('6 / 10');
+    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
+    // Les compteurs s'animent de 0 à la valeur (design v2 §6) : on attend la valeur finale.
+    await waitFor(() => expect(screen.getByTestId('result-score')).toHaveTextContent(/^6 \/ 10$/));
     expect(screen.getByText('Objectif du jour atteint 🎯')).toBeTruthy();
-    expect(screen.getByTestId('goal-value')).toHaveTextContent('10 / 10');
+    await waitFor(() => expect(screen.getByTestId('goal-value')).toHaveTextContent(/^10 \/ 10$/));
     expect(Object.keys(useLearnerStore.getState().progress)).toHaveLength(10);
   });
 
@@ -119,7 +120,9 @@ describe('Test hebdomadaire (US-07, US-08)', () => {
     for (const w of WORDS.slice(0, 10)) useLearnerStore.getState().evaluateCard(w.id, true, now);
     await renderRouter(routes, { initialUrl: '/test-run' });
     for (let i = 1; i <= 10; i++) {
-      expect(screen.getByTestId('test-counter')).toHaveTextContent(`Question ${i} / 10`);
+      // Compteur « i/N » (design v2 §5.7), lu « Question i sur N ».
+      expect(screen.getByTestId('test-counter')).toHaveTextContent(new RegExp(`^${i}/10$`));
+      expect(screen.getByTestId('test-counter')).toHaveProp('accessibilityLabel', `Question ${i} sur 10`);
       expect(screen.queryByTestId('test-next')).toBeNull(); // pas de « passer »
       await fireEvent.press(screen.getByTestId('test-option-0'));
       await fireEvent.press(screen.getByTestId('test-next'));
@@ -127,7 +130,9 @@ describe('Test hebdomadaire (US-07, US-08)', () => {
     await waitFor(() => expect(screen.getByText('Résultat du test')).toBeTruthy());
     const history = useLearnerStore.getState().testHistory;
     expect(history).toHaveLength(1);
-    expect(screen.getByTestId('test-result-score')).toHaveTextContent(`${history[0].correct} / 10`);
+    await waitFor(() =>
+      expect(screen.getByTestId('test-result-score')).toHaveTextContent(new RegExp(`^${history[0].correct} / 10$`)),
+    );
   });
 });
 

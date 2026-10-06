@@ -2,7 +2,7 @@
  * Jours actifs, série et objectif quotidien (RG-44 → RG-48, US-05).
  * Les dates sont des clés locales `YYYY-MM-DD` fournies par l'appelant.
  */
-import { addDaysToKey } from './dates';
+import { addDaysToKey, parseLocalDateKey } from './dates';
 
 /** Ajoute une date locale à l'ensemble trié des jours actifs (RG-45, RG-48). */
 export function markActiveDay(activeDays: readonly string[], dayKey: string): string[] {
@@ -88,4 +88,37 @@ export function computeGoalStatus(done: number, goal: number): GoalStatus {
     reached: done >= goal,
     remaining: Math.max(0, goal - done),
   };
+}
+
+/** Initiales des jours de la semaine ISO, lundi → dimanche (affichage WeekStrip). */
+export const WEEKDAY_INITIALS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as const;
+
+export interface WeekDay {
+  /** Date locale `YYYY-MM-DD`. */
+  key: string;
+  /** Initiale française du jour (L, M, M, J, V, S, D). */
+  initial: string;
+  /** Jour actif au sens de RG-45 (présent dans `activeDays`, RG-48). */
+  active: boolean;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+/**
+ * Les 7 jours (lundi → dimanche) de la semaine ISO locale contenant `todayKey`,
+ * avec leur statut actif. Pur affichage : aucune règle nouvelle (design §4.6).
+ */
+export function getWeekDays(activeDays: readonly string[], todayKey: string): WeekDay[] {
+  const active = new Set(activeDays);
+  const offset = (parseLocalDateKey(todayKey).getDay() + 6) % 7; // lundi = 0 … dimanche = 6
+  const monday = addDaysToKey(todayKey, -offset);
+  return WEEKDAY_INITIALS.map((initial, i) => {
+    const key = addDaysToKey(monday, i);
+    return { key, initial, active: active.has(key), isToday: key === todayKey, isFuture: key > todayKey };
+  });
+}
+
+/** Nombre de jours actifs dans la semaine ISO courante. */
+export function countActiveDaysThisWeek(activeDays: readonly string[], todayKey: string): number {
+  return getWeekDays(activeDays, todayKey).filter((d) => d.active).length;
 }

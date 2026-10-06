@@ -1,17 +1,22 @@
 /**
- * Bouton du design system (design §3.1).
+ * Bouton 3D du design system (design §4.1) : face colorée + lèvre pleine, enfoncement à l'appui.
  */
 import { useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, radius, shadows, spacing, typography } from '@/theme/tokens';
+import { colors, depth, spacing, typography } from '@/theme/tokens';
+
+import { PressableRaised } from './Raised';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'softDanger' | 'sun';
 
 export interface ButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: ButtonVariant;
+  /** Compatibilité v1 : `tone="success"` = `variant="success"`. */
   tone?: 'default' | 'success';
-  size?: 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
   leftEmoji?: string;
@@ -19,10 +24,35 @@ export interface ButtonProps {
   accessibilityHint?: string;
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  /** Couleur de texte forcée (ex. secondaire sur carte Sun : `ink`). */
+  textColor?: string;
 }
 
 /** Délai pendant lequel un second tap est ignoré (anti-double-tap, design §3.1 et §5.4). */
 const DOUBLE_TAP_GUARD_MS = 400;
+
+interface VariantStyle {
+  face: string;
+  lip: string;
+  text: string;
+  border?: string;
+}
+
+export const BUTTON_VARIANTS: Record<ButtonVariant | 'disabled', VariantStyle> = {
+  primary: { face: colors.primary, lip: colors.primaryLip, text: colors.textOnColor },
+  sun: { face: colors.sun, lip: colors.sunLip, text: colors.ink },
+  secondary: { face: colors.surface, lip: colors.border, text: colors.primary, border: colors.border },
+  success: { face: colors.success, lip: colors.successLip, text: colors.textOnColor },
+  softDanger: { face: colors.surface, lip: colors.border, text: colors.danger, border: colors.border },
+  danger: { face: colors.danger, lip: colors.dangerLip, text: colors.textOnColor },
+  disabled: { face: colors.disabledBg, lip: colors.disabledLip, text: colors.disabledText },
+};
+
+const SIZES = {
+  sm: { height: 44, radius: 14, font: 15 },
+  md: { height: 48, radius: 14, font: 16 },
+  lg: { height: 56, radius: 16, font: 17 },
+} as const;
 
 export function Button({
   label,
@@ -37,10 +67,14 @@ export function Button({
   accessibilityHint,
   testID,
   style,
+  textColor,
 }: ButtonProps) {
   const lastPress = useRef(0);
   const inactive = disabled || loading;
-  const isSuccess = variant === 'primary' && tone === 'success';
+  const resolved: ButtonVariant = variant === 'primary' && tone === 'success' ? 'success' : variant;
+  const look = BUTTON_VARIANTS[inactive ? 'disabled' : resolved];
+  const dims = SIZES[size];
+  const color = inactive ? look.text : (textColor ?? look.text);
 
   const handlePress = () => {
     const now = Date.now();
@@ -49,14 +83,8 @@ export function Button({
     onPress();
   };
 
-  const textColor = inactive
-    ? colors.disabledText
-    : variant === 'secondary'
-      ? colors.primary
-      : colors.textOnColor;
-
   return (
-    <Pressable
+    <PressableRaised
       onPress={handlePress}
       disabled={inactive}
       accessibilityRole="button"
@@ -64,57 +92,37 @@ export function Button({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: loading }}
       testID={testID}
-      style={({ pressed }) => [
-        styles.base,
-        size === 'lg' ? styles.lg : styles.md,
-        inactive
-          ? styles.disabled
-          : variant === 'primary'
-            ? [
-                isSuccess ? styles.success : styles.primary,
-                pressed && (isSuccess ? styles.successPressed : styles.primaryPressed),
-              ]
-            : variant === 'secondary'
-              ? [styles.secondary, pressed && styles.secondaryPressed]
-              : [styles.danger, pressed && styles.dangerPressed],
-        style,
+      faceTestID={testID ? `${testID}-face` : undefined}
+      lipColor={look.lip}
+      depth={depth.md}
+      radius={dims.radius}
+      style={style}
+      faceStyle={[
+        styles.face,
+        { minHeight: dims.height, backgroundColor: look.face },
+        look.border ? { borderWidth: 2, borderColor: look.border } : null,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={textColor} />
+        <ActivityIndicator color={color} />
       ) : (
         <View style={styles.content}>
           {leftEmoji ? (
-            <Text style={[styles.label, { color: textColor }]} accessible={false}>
+            <Text style={[styles.label, { color, fontSize: dims.font }]} accessible={false}>
               {leftEmoji}
             </Text>
           ) : null}
-          <Text style={[size === 'lg' ? styles.labelLg : styles.label, { color: textColor }]}>{label}</Text>
+          <Text style={[styles.label, { color, fontSize: dims.font }]} numberOfLines={2}>
+            {label}
+          </Text>
         </View>
       )}
-    </Pressable>
+    </PressableRaised>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  lg: { minHeight: 52 },
-  md: { minHeight: 44 },
+  face: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { ...typography.bodyStrong, textAlign: 'center' },
-  labelLg: { ...typography.h3, textAlign: 'center' },
-  primary: { backgroundColor: colors.primary, ...shadows.md },
-  primaryPressed: { backgroundColor: colors.primaryPressed },
-  success: { backgroundColor: colors.success, ...shadows.md },
-  successPressed: { backgroundColor: colors.successPressed },
-  secondary: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.borderStrong },
-  secondaryPressed: { backgroundColor: colors.primarySoft },
-  danger: { backgroundColor: colors.danger },
-  dangerPressed: { opacity: 0.85 },
-  disabled: { backgroundColor: colors.disabledBg },
+  label: { ...typography.button, textAlign: 'center', flexShrink: 1 },
 });

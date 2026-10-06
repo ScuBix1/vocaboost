@@ -1,16 +1,17 @@
 /**
- * Session de cartes (design §4.3) — US-01, US-02, US-03, US-09.
+ * Session de cartes (design v2 §5.3) — US-01, US-02, US-03, US-09.
  * Tirage : RG-20 → RG-26 ; déroulé : RG-30 → RG-35 ; TTS : RG-80 → RG-82.
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Flashcard } from '@/components/Flashcard';
 import { ProgressBar } from '@/components/ProgressBar';
+import { Vobi } from '@/components/Vobi';
 import { WORDS } from '@/data/words';
 import { toLocalDateKey } from '@/domain/dates';
 import { filterPool } from '@/domain/filters';
@@ -24,6 +25,9 @@ import { speakEnglish, stopSpeaking } from '@/services/speech';
 import { useLearnerStore } from '@/store/useLearnerStore';
 import { useResultsStore } from '@/store/useResultsStore';
 import { colors, MIN_TOUCH, spacing, typography } from '@/theme/tokens';
+
+/** Au-delà, les deux boutons d'évaluation passent l'un sous l'autre (design §8.3). */
+const LARGE_FONT_SCALE = 1.3;
 
 /** Tire une nouvelle session à partir de l'état courant du store (RG-21). */
 function drawSession(): Word[] {
@@ -44,6 +48,7 @@ export default function SessionScreen() {
   const resetFilters = useLearnerStore((s) => s.resetFilters);
   const setLastSession = useResultsStore((s) => s.setLastSession);
   const reduceMotion = useReduceMotion();
+  const { fontScale } = useWindowDimensions();
   // Verrou commun à « Retourner », à la carte et aux boutons d'évaluation (BUG-01, BUG-02).
   const guard = useActionGuard();
   const { lock } = guard;
@@ -133,15 +138,21 @@ export default function SessionScreen() {
         testID="session-quit"
         style={styles.quit}
       >
-        <Text style={styles.quitText}>Quitter</Text>
+        <Text style={styles.quitText}>✕ Quitter</Text>
       </Pressable>
       {total > 0 ? (
-        <View style={styles.headerBar}>
-          <ProgressBar
-            value={index / total}
-            accessibilityLabel={`Progression de la session : carte ${index + 1} sur ${total}`}
-          />
-        </View>
+        <>
+          <View style={styles.headerBar}>
+            <ProgressBar
+              value={index / total}
+              height={16}
+              accessibilityLabel={`Progression de la session : carte ${index + 1} sur ${total}`}
+            />
+          </View>
+          <Text style={styles.counter} accessible={false} testID="session-counter">
+            {index + 1}/{total}
+          </Text>
+        </>
       ) : null}
     </View>
   );
@@ -153,7 +164,7 @@ export default function SessionScreen() {
         {header}
         <View style={styles.emptyWrap}>
           <EmptyState
-            emoji="🔎"
+            mood="search"
             title="Aucun mot ne correspond à tes filtres"
             message="Élargis ta sélection de catégories ou de niveaux."
             actionLabel="Réinitialiser les filtres"
@@ -176,7 +187,7 @@ export default function SessionScreen() {
         <Animated.View style={[styles.cardWrap, slideStyle]}>
           <Flashcard
             key={word.id}
-            word={{ ...word, categoryLabel: CATEGORY_LABELS[word.category] }}
+            word={{ ...word, categoryLabel: CATEGORY_LABELS[word.category], category: word.category }}
             index={index + 1}
             total={total}
             flipped={flipped}
@@ -188,28 +199,37 @@ export default function SessionScreen() {
       <View style={styles.actions}>
         {flipped ? (
           // RG-32 : boutons d'évaluation uniquement après retournement.
-          <View style={styles.evalRow}>
-            <Button
-              label="✓ Je savais"
-              accessibilityLabel="Je savais"
-              tone="success"
-              onPress={() => evaluate(true)}
-              disabled={guard.locked}
-              style={styles.evalButton}
-              testID="session-known"
-            />
-            <Button
-              label="✗ Je ne savais pas"
-              accessibilityLabel="Je ne savais pas"
-              variant="danger"
-              onPress={() => evaluate(false)}
-              disabled={guard.locked}
-              style={styles.evalButton}
-              testID="session-unknown"
-            />
-          </View>
+          <>
+            <Text style={styles.hint}>Sois honnête : l'app adapte tes révisions 😉</Text>
+            <View style={[styles.evalRow, fontScale > LARGE_FONT_SCALE && styles.evalColumn]}>
+              <Button
+                label="✓ Je savais"
+                accessibilityLabel="Je savais"
+                variant="success"
+                onPress={() => evaluate(true)}
+                disabled={guard.locked}
+                style={fontScale > LARGE_FONT_SCALE ? undefined : styles.evalButton}
+                testID="session-known"
+              />
+              <Button
+                label="✗ Je ne savais pas"
+                accessibilityLabel="Je ne savais pas"
+                variant="softDanger"
+                onPress={() => evaluate(false)}
+                disabled={guard.locked}
+                style={fontScale > LARGE_FONT_SCALE ? undefined : styles.evalButton}
+                testID="session-unknown"
+              />
+            </View>
+          </>
         ) : (
-          <Button label="Retourner" onPress={flip} disabled={guard.locked} testID="session-flip" />
+          <>
+            <View style={styles.hintRow}>
+              <Vobi mood="hello" size={36} />
+              <Text style={[styles.hint, styles.hintInk]}>Tu le connais ? Pense à la traduction…</Text>
+            </View>
+            <Button label="Retourner" onPress={flip} disabled={guard.locked} testID="session-flip" />
+          </>
         )}
       </View>
     </SafeAreaView>
@@ -223,21 +243,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingTop: spacing.xs,
+    minHeight: 52,
   },
   quit: { minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center' },
-  quitText: { ...typography.bodyStrong, color: colors.primary },
+  quitText: { fontSize: 15, lineHeight: 20, fontWeight: '900', color: colors.primary },
   headerBar: { flex: 1 },
-  body: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg },
-  cardWrap: { width: '100%' },
+  counter: { fontSize: 15, lineHeight: 20, fontWeight: '900', color: colors.inkMuted, minWidth: 38, textAlign: 'right' },
+  body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: 14, paddingBottom: 6 },
+  cardWrap: { flex: 1, width: '100%' },
   actions: {
     minHeight: 120,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
-  // « Je savais » est lu en premier mais affiché à droite (design §4.3).
+  hintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  hint: { ...typography.caption, color: colors.inkMuted, textAlign: 'center' },
+  hintInk: { color: colors.ink, flexShrink: 1 },
+  // « Je savais » est lu en premier mais affiché à droite (design §5.3).
   evalRow: { flexDirection: 'row-reverse', gap: spacing.md },
+  evalColumn: { flexDirection: 'column' },
   evalButton: { flex: 1 },
   emptyWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg },
 });

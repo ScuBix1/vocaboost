@@ -1,10 +1,15 @@
 /**
- * Conteneur Card (design §3.2).
+ * Card 3D (design §4.2) : face blanche, bordure 2 et lèvre 4 ; tons `sun`, `success`, `primary`.
+ * Pressable : la face s'enfonce de 2 pt.
  */
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, radius, shadows, spacing, typography } from '@/theme/tokens';
+import { colors, depth as depthTokens, radius as radii, spacing, typography } from '@/theme/tokens';
+
+import { PressableRaised, Raised } from './Raised';
+
+export type CardTone = 'default' | 'sun' | 'success' | 'primary';
 
 export interface CardProps {
   children?: ReactNode;
@@ -12,13 +17,38 @@ export interface CardProps {
   onPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  /** Style de la face (padding, gap, alignement). */
+  contentStyle?: StyleProp<ViewStyle>;
+  tone?: CardTone;
+  radius?: number;
+  depth?: number;
   testID?: string;
 }
 
-export function Card({ children, title, onPress, accessibilityLabel, style, testID }: CardProps) {
+const TONES: Record<CardTone, { face: string; border: string; lip: string; title: string }> = {
+  default: { face: colors.surface, border: colors.border, lip: colors.border, title: colors.ink },
+  sun: { face: colors.sunSoft, border: colors.sunBorder, lip: colors.sunBorder, title: colors.ink },
+  success: { face: colors.successSoft, border: colors.successSoft, lip: '#BFEBD8', title: colors.successInk },
+  primary: { face: colors.primary, border: colors.primary, lip: colors.primaryLip, title: colors.textOnColor },
+};
+
+export function Card({
+  children,
+  title,
+  onPress,
+  accessibilityLabel,
+  style,
+  contentStyle,
+  tone = 'default',
+  radius = radii.lg,
+  depth = depthTokens.md,
+  testID,
+}: CardProps) {
+  const t = TONES[tone];
+  const faceStyle = [styles.face, { backgroundColor: t.face, borderColor: t.border }, contentStyle];
   const header = title ? (
     <View style={styles.header}>
-      <Text style={styles.title} accessibilityRole="header">
+      <Text style={[styles.title, { color: t.title }]} accessibilityRole="header">
         {title}
       </Text>
       {onPress ? (
@@ -31,42 +61,44 @@ export function Card({ children, title, onPress, accessibilityLabel, style, test
 
   if (onPress) {
     return (
-      <Pressable
+      <PressableRaised
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         testID={testID}
-        style={({ pressed }) => [styles.card, pressed && styles.pressed, style]}
+        lipColor={t.lip}
+        depth={depth}
+        travel={2}
+        radius={radius}
+        style={style}
+        faceStyle={faceStyle}
       >
         {header}
         {children}
-      </Pressable>
+      </PressableRaised>
     );
   }
 
   return (
-    <View
-      style={[styles.card, style]}
+    <Raised
+      style={style}
       accessible={accessibilityLabel ? true : undefined}
       accessibilityLabel={accessibilityLabel}
       testID={testID}
+      lipColor={t.lip}
+      depth={depth}
+      radius={radius}
+      faceStyle={faceStyle}
     >
       {header}
       {children}
-    </View>
+    </Raised>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-    ...shadows.sm,
-  },
-  pressed: { opacity: 0.9 },
+  face: { borderWidth: 2, padding: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { ...typography.h3, color: colors.text, flex: 1 },
-  chevron: { ...typography.h2, color: colors.textMuted, marginLeft: spacing.sm },
+  title: { ...typography.h3, flex: 1 },
+  chevron: { ...typography.h2, color: colors.inkMuted, marginLeft: spacing.sm },
 });

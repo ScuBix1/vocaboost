@@ -1,14 +1,14 @@
 /**
- * Déroulé du test hebdomadaire (design §4.7) — US-07 (RG-62 → RG-69).
+ * Déroulé du test hebdomadaire (design v2 §5.7) — US-07 (RG-62 → RG-69).
  */
 import { Redirect, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '@/components/Badge';
-import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { FeedbackSheet } from '@/components/FeedbackSheet';
 import { OptionButton, type OptionState } from '@/components/OptionButton';
 import { ProgressBar } from '@/components/ProgressBar';
 import { WORDS, WORDS_BY_ID } from '@/data/words';
@@ -17,7 +17,7 @@ import { generateTest, getTestStatus, type TestAnswer, type TestQuestion } from 
 import { confirmDestructive } from '@/services/confirm';
 import { useLearnerStore } from '@/store/useLearnerStore';
 import { useResultsStore } from '@/store/useResultsStore';
-import { colors, MIN_TOUCH, spacing, typography } from '@/theme/tokens';
+import { colors, MAX_FONT_MULTIPLIER, MIN_TOUCH, spacing, typography } from '@/theme/tokens';
 
 interface DrawnTest {
   questions: TestQuestion[];
@@ -50,6 +50,7 @@ export default function TestRunScreen() {
   const answeredIndex = useRef(-1);
   const completeTest = useLearnerStore((s) => s.completeTest);
   const setLastTest = useResultsStore((s) => s.setLastTest);
+  const insets = useSafeAreaInsets();
 
   // Abandon : confirmation, rien n'est enregistré (RG-67).
   const quit = useCallback(() => {
@@ -123,28 +124,31 @@ export default function TestRunScreen() {
   const answeredCorrectly = selected !== null && selected === question.correctIndex;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Pressable onPress={quit} accessibilityRole="button" accessibilityLabel="Quitter" style={styles.quit} testID="test-quit">
-          <Text style={styles.quitText}>Quitter</Text>
+          <Text style={styles.quitText}>✕ Quitter</Text>
         </Pressable>
-        <Text style={styles.counter} testID="test-counter">
-          Question {qIndex + 1} / {total}
+        <View style={styles.bar}>
+          <ProgressBar value={qIndex / total} height={16} accessibilityLabel={`Question ${qIndex + 1} sur ${total}`} />
+        </View>
+        <Text style={styles.counter} testID="test-counter" accessibilityLabel={`Question ${qIndex + 1} sur ${total}`}>
+          {qIndex + 1}/{total}
         </Text>
-        <View style={styles.quit} />
-      </View>
-      <View style={styles.bar}>
-        <ProgressBar value={qIndex / total} accessibilityLabel={`Question ${qIndex + 1} sur ${total}`} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.instruction}>
-          {enToFr ? 'Quelle est la traduction de ce mot ?' : 'Comment dit-on ce mot en anglais ?'}
-        </Text>
-        <Card style={styles.promptCard}>
-          <Badge label={enToFr ? 'EN' : 'FR'} />
+      <ScrollView contentContainerStyle={[styles.content, selected === null && { paddingBottom: spacing.lg + insets.bottom }]}>
+        <View style={styles.instructionRow}>
+          <Text style={styles.instruction}>
+            {enToFr ? 'Quelle est la traduction de ce mot ?' : 'Comment dit-on ce mot en anglais ?'}
+          </Text>
+          <Badge label={enToFr ? 'EN → FR' : 'FR → EN'} variant="level" />
+        </View>
+        <Card radius={26} contentStyle={styles.promptFace}>
+          <Text style={styles.language}>{enToFr ? '🇬🇧 Anglais' : '🇫🇷 Français'}</Text>
           <Text
             style={styles.prompt}
+            maxFontSizeMultiplier={MAX_FONT_MULTIPLIER}
             accessibilityLanguage={enToFr ? 'en-US' : 'fr-FR'}
             testID="test-prompt"
           >
@@ -166,19 +170,18 @@ export default function TestRunScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        {selected !== null ? (
-          <>
-            <Text
-              style={[styles.feedback, { color: answeredCorrectly ? colors.success : colors.danger }]}
-              accessibilityLiveRegion="polite"
-            >
-              {answeredCorrectly ? '✓ Bonne réponse !' : `✗ La bonne réponse était : ${correctLabel}`}
-            </Text>
-            <Button label={isLast ? 'Voir le résultat' : 'Suivant'} onPress={next} testID="test-next" />
-          </>
-        ) : null}
-      </View>
+      {selected !== null ? (
+        <FeedbackSheet
+          key={qIndex}
+          correct={answeredCorrectly}
+          answer={correctLabel}
+          prompt={question.prompt}
+          direction={question.direction}
+          actionLabel={isLast ? 'Voir le résultat' : 'Suivant'}
+          onNext={next}
+          bottomInset={insets.bottom}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -188,19 +191,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
+    minHeight: 52,
   },
-  quit: { minHeight: MIN_TOUCH, minWidth: 64, justifyContent: 'center' },
-  quitText: { ...typography.bodyStrong, color: colors.primary },
-  counter: { ...typography.caption, color: colors.textMuted },
-  bar: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
-  content: { padding: spacing.lg, gap: spacing.lg },
-  instruction: { ...typography.caption, color: colors.textMuted },
-  promptCard: { padding: spacing.xl, alignItems: 'center' },
-  prompt: { ...typography.h2, color: colors.text, textAlign: 'center' },
-  options: { gap: spacing.md },
-  footer: { minHeight: 76, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
-  feedback: { ...typography.bodyStrong },
+  quit: { minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center' },
+  quitText: { fontSize: 15, lineHeight: 20, fontWeight: '900', color: colors.primary },
+  bar: { flex: 1 },
+  counter: { fontSize: 15, lineHeight: 20, fontWeight: '900', color: colors.inkMuted, minWidth: 38, textAlign: 'right' },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
+  instructionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  instruction: { ...typography.caption, fontSize: 15, lineHeight: 20, color: colors.ink, flexShrink: 1 },
+  promptFace: { alignItems: 'center', paddingVertical: 26, paddingHorizontal: spacing.lg, gap: 6 },
+  language: { ...typography.overline, color: colors.inkMuted },
+  prompt: { ...typography.wordL, color: colors.ink, textAlign: 'center' },
+  options: { gap: spacing.md, marginTop: spacing.xs },
 });

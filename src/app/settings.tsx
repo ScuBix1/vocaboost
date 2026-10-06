@@ -1,21 +1,23 @@
 /**
- * Réglages (design §4.9) — objectif quotidien (RG-44), filtres (RG-50 → RG-53, US-06),
+ * Réglages v2 (design §5.9) — objectif quotidien (RG-44), filtres (RG-50 → RG-53, US-06),
  * réinitialisation (RG-94, US-10).
  */
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { Chip } from '@/components/Chip';
 import { Notice } from '@/components/Notice';
 import { Screen, SectionTitle } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
+import { Vobi } from '@/components/Vobi';
 import { allCategoriesSelected } from '@/domain/filters';
 import { CATEGORY_IDS, CATEGORY_LABELS, DAILY_GOAL_OPTIONS, LEVELS } from '@/domain/types';
 import { useSessionPool } from '@/hooks/useLearnerSelectors';
 import { confirmDestructive } from '@/services/confirm';
 import { useLearnerStore } from '@/store/useLearnerStore';
-import { colors, spacing, typography } from '@/theme/tokens';
+import { categoryColors, colors, spacing, typography } from '@/theme/tokens';
 
 const KEEP_ONE_MESSAGE = 'Garde au moins un élément sélectionné.';
 
@@ -118,6 +120,7 @@ export default function SettingsScreen() {
               <Chip
                 key={category}
                 label={CATEGORY_LABELS[category]}
+                emoji={categoryColors[category].emoji}
                 selected={selected}
                 locked={selected && filters.categories.length === 1}
                 onToggle={() => {
@@ -136,7 +139,9 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <SectionTitle>Données</SectionTitle>
-        <Text style={styles.body}>📱 Données stockées uniquement sur cet appareil.</Text>
+        <Card>
+          <Text style={styles.body}>📱 Données stockées uniquement sur cet appareil.</Text>
+        </Card>
         <Button
           label="Réinitialiser ma progression"
           variant="danger"
@@ -146,7 +151,10 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <Text style={styles.caption}>VocaBoost v1.0</Text>
+      <View style={styles.footer}>
+        <Vobi mood="hello" size={36} />
+        <Text style={styles.caption}>VocaBoost v1.0</Text>
+      </View>
     </Screen>
   );
 }
@@ -156,8 +164,9 @@ const styles = StyleSheet.create({
   section: { gap: spacing.md },
   caption: { ...typography.caption, color: colors.textMuted },
   body: { ...typography.body, color: colors.text },
-  h3: { ...typography.h3, color: colors.text },
+  h3: { ...typography.h3, color: colors.ink },
   subHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  link: { ...typography.bodyStrong, color: colors.primary },
+  link: { ...typography.bodyStrong, fontWeight: '900', color: colors.primary },
+  footer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

@@ -1,9 +1,11 @@
 /**
- * Contrôle segmenté (design §3.9), utilisé pour l'objectif quotidien.
+ * Contrôle segmenté 3D (design §4.13), utilisé pour l'objectif quotidien.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, typography } from '@/theme/tokens';
+import { colors, depth, radius, typography } from '@/theme/tokens';
+
+import { Raised } from './Raised';
 
 export interface SegmentedControlProps<T extends string | number> {
   options: readonly T[];
@@ -24,7 +26,7 @@ export function SegmentedControl<T extends string | number>({
 }: SegmentedControlProps<T>) {
   return (
     <View style={styles.container} accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel}>
-      {options.map((option, i) => {
+      {options.map((option) => {
         const active = option === value;
         return (
           <Pressable
@@ -34,11 +36,17 @@ export function SegmentedControl<T extends string | number>({
             accessibilityLabel={formatA11yLabel ? formatA11yLabel(option) : formatLabel(option)}
             accessibilityState={{ checked: active, selected: active }}
             testID={`segment-${String(option)}`}
-            style={[styles.segment, i > 0 && styles.separator, active && styles.active]}
+            style={styles.segment}
           >
-            <Text style={[styles.label, { color: active ? colors.textOnColor : colors.text }]}>
-              {formatLabel(option)}
-            </Text>
+            {active ? (
+              <Raised lipColor={colors.primaryLip} depth={depth.sm} radius={12} style={styles.fill} faceStyle={styles.activeFace}>
+                <Text style={[styles.label, { color: colors.textOnColor }]}>{formatLabel(option)}</Text>
+              </Raised>
+            ) : (
+              <View style={[styles.fill, styles.idleFace]}>
+                <Text style={[styles.label, { color: colors.ink }]}>{formatLabel(option)}</Text>
+              </View>
+            )}
           </Pressable>
         );
       })}
@@ -47,16 +55,10 @@ export function SegmentedControl<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-  segment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  separator: { borderLeftWidth: 1.5, borderLeftColor: colors.borderStrong },
-  active: { backgroundColor: colors.primary },
-  label: { ...typography.bodyStrong },
+  container: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 4, gap: 4 },
+  segment: { flex: 1, minHeight: 48 },
+  fill: { flex: 1 },
+  activeFace: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', minHeight: 41 },
+  idleFace: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  label: { ...typography.h3 },
 });

@@ -69,7 +69,7 @@ describe('QA — abandon du test (RG-67, AC-07.11)', () => {
     const boxesBefore = JSON.stringify(useLearnerStore.getState().progress);
     await renderRouter(routes, { initialUrl: '/test' });
     await fireEvent.press(screen.getByTestId('test-start'));
-    await waitFor(() => expect(screen.getByTestId('test-counter')).toHaveTextContent('Question 1 / 12'));
+    await waitFor(() => expect(screen.getByTestId('test-counter')).toHaveTextContent(/^1\/12$/));
     for (let i = 0; i < 3; i++) {
       await fireEvent.press(screen.getByTestId('test-option-1'));
       await fireEvent.press(screen.getByTestId('test-next'));
@@ -82,7 +82,7 @@ describe('QA — abandon du test (RG-67, AC-07.11)', () => {
       expect.anything(),
     );
     await act(() => lastAlertButton('Continuer le test').onPress?.());
-    expect(screen.getByTestId('test-counter')).toHaveTextContent('Question 4 / 12');
+    expect(screen.getByTestId('test-counter')).toHaveTextContent(/^4\/12$/);
 
     await fireEvent.press(screen.getByTestId('test-quit'));
     await act(() => lastAlertButton('Abandonner').onPress?.());
@@ -180,7 +180,7 @@ describe('QA — session', () => {
       await fireEvent.press(screen.getByTestId('session-known'));
       await waitGuard();
     }
-    await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('result-new-session'));
     await waitFor(() => expect(screen.getAllByText('Carte 1 / 10').length).toBeGreaterThan(0));
   });
@@ -197,7 +197,7 @@ describe('QA re-test — verrou anti-double-tap (300 ms) et usage rapide normal'
       await advance(350);
       await fireEvent.press(screen.getByTestId('session-known'));
     }
-    await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
     expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([10]);
   });
 

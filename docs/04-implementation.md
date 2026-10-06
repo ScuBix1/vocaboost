@@ -120,3 +120,37 @@ Toutes concernent l'outillage de build/dev ou des entrées non contrôlées par 
 bundle de l'app. **Ne pas lancer `npm audit fix --force`** : il propose de rétrograder vers Expo 44 /
 React Native 0.72, ce qui casserait le projet. Elles disparaîtront en suivant les mises à jour d'Expo
 (SDK 58+).
+
+## Design v2
+
+Source : `docs/03-design.md` v2 (validée par le client), maquettes `docs/design/maquettes.html`. Aucune nouvelle dépendance (`package.json` inchangé), aucune règle métier modifiée, aucune proposition hors spec (§9) implémentée. Rendu obtenu : `docs/design/rendu-app-v2.png` (captures Playwright 390×844 de l'export web).
+
+**Tokens** (`theme/tokens.ts`) : palette Grape / Sun / Flame / Mint / Berry / Ink (§3.1), `categoryColors` (base, soft, ink, emoji des 10 catégories), `depth` (3 / 4 / 6), `motion`, typographie système 800-900 (`wordXL`, `score`, `wordL`, `overline`…), rayons v2. Les clés v1 (`text`, `textMuted`, `primaryPressed`, `warning*`…) sont conservées et pointent vers les valeurs v2.
+
+**Composants**
+
+| Composant | Fichier | Notes |
+|---|---|---|
+| Profondeur 3D | `components/Raised.tsx` | `Raised` (statique) et `PressableRaised` : lèvre pleine absolue décalée de `depth`, la face descend de `depth` à l'appui (60 ms) et remonte (120 ms) ; instantané si « Réduire les animations ». |
+| Button | `Button.tsx` | Variantes `primary`, `sun`, `secondary`, `success`, `softDanger`, `danger` (+ désactivé) ; `tone="success"` reste accepté. Garde anti-double-tap 400 ms inchangée. |
+| Card | `Card.tsx` | Tons `default`, `sun`, `success`, `primary` ; pressable : la face s'enfonce de 2 pt. |
+| Flashcard | `Flashcard.tsx` | Chip catégorie colorée + badge niveau, recto `wordXL` + 🔊 56, verso traduction / exemple. Le 🔊 du recto reste hors de la zone tactile de la carte (positionné par `onLayout`), comme en v1. |
+| ProgressBar / ProgressRing | `ProgressBar.tsx`, `ProgressRing.tsx` | Barre 10 / 16 avec reflet, minimum visible 6 %. Anneau sans SVG : deux demi-disques tournés dans deux fenêtres `overflow: hidden` (`ringAngles`), plein et `successBright` à ≥ 100 %. |
+| Objectif | `GoalCard.tsx` | `GoalRing` (« x / objectif », `testID="goal-value"`), compteur animé optionnel. |
+| Série | `Streak.tsx` | `StreakChip` (éteinte à 0) et `WeekStrip` compacte (Accueil) / large (Progrès). |
+| Vobi | `Vobi.tsx` | Grille 120 en `View`, 8 humeurs (`hello`, `correct`, `oops`, `streak`, `win`, `retry`, `empty`, `search`), mise à l'échelle par `scale`, rebond d'entrée optionnel ; toujours décoratif. |
+| Test | `OptionButton.tsx`, `FeedbackSheet.tsx` | Lettres A-D, pop / secousse ; bandeau bas vert ou rouge avec Vobi et bouton `success` / `danger`. |
+| Célébrations | `Confetti.tsx`, `CountUp.tsx` | 24 confettis `Animated` (10 immobiles si « Réduire les animations »), fondu sur les 300 dernières ms ; compteurs 0 → valeur en 600 ms. |
+| Autres | `StatTile`, `CategoryCard`, `Badge`, `Chip`, `SegmentedControl`, `IconButton`, `EmptyState` (Vobi), `Notice` (toast pill), `messages.ts` (micro-textes v2) | |
+
+**Données** : les pastilles de la semaine viennent d'une nouvelle fonction pure `getWeekDays(activeDays, todayKey)` dans `domain/streak.ts` (semaine ISO locale lundi → dimanche, jours actifs RG-45/48, aujourd'hui, futur), exposée par le sélecteur `useWeekDays`. C'est le seul ajout dans `src/domain/` (tests : `domain/__tests__/weekDays.test.ts`).
+
+**Écrans** : tous refondus selon §5 (Accueil avec hero Grape et bulle de Vobi, session avec compteur « n/N », résultat de session avec confettis si ≥ 50 %, Progrès avec hero et cartes de catégorie, test avec bandeau de feedback, résultat du test avec Vobi `win` / `retry`, onglets avec pastille active). Mécanismes conservés : verrou `useActionGuard` (BUG-01/02), gardes par carte / question, confirmation d'abandon, `testID`, libellés et annonces d'accessibilité. Libellés contractuels inchangés (« Session terminée » devient « Session terminée ! », §8.4).
+
+**Tests** : 17 suites, 174 tests (150 → 174, aucun supprimé). Adaptés sans affaiblir la vérification : « Session terminée ! », bulle « Salut ! Prêt pour tes 10 premiers mots ? », compteur de test « i/N » (contenu exact + libellé « Question i sur N »), scores animés attendus avec `waitFor` sur la valeur exacte. Nouveaux : `components/__tests__/v2-components.test.tsx` (Vobi, anneau, bouton 3D, série, feedback, confettis, micro-textes) et `weekDays.test.ts`.
+
+**Écarts restants vs maquettes**
+- Police système au lieu de Nunito (décision client) : textes un peu plus larges ; « ✗ Je ne savais pas » passe sur 2 lignes à 390 pt.
+- Cartes de catégorie : le « {pct} % » est placé à droite de la barre (et non sur la ligne du nom) pour éviter qu'un nom long (« Nourriture », « personnalité ») soit coupé en plein mot avec la police système.
+- Le rendu web montre une erreur d'hydratation React (#418) au chargement direct de `/test-run` (rendu statique = redirection, client = test) ; React refait le rendu côté client, sans effet visible. Ce comportement vient du tirage du test au montage (inchangé), pas de la v2 ; hors périmètre mobile.
+- Non implémenté (optionnel en §6) : reflet qui traverse la barre après « Je savais », pop 🎯 de l'anneau, vibration (permission Android, cf. limites v1).

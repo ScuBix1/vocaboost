@@ -1,10 +1,10 @@
 /**
- * Bandeau temporaire (toast simple sans librairie, design §4.9 et §3.6).
+ * Bandeau temporaire (toast pill sans librairie, design §4.13).
  */
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme/tokens';
+import { colors, radius, shadows, spacing, typography } from '@/theme/tokens';
 
 export interface NoticeProps {
   message: string | null;
@@ -25,16 +25,22 @@ export function Notice({ message, tone = 'info', onHide, durationMs = 3000 }: No
   const success = tone === 'success';
   return (
     <View
-      style={[styles.notice, { backgroundColor: success ? colors.successSoft : colors.warningSoft }]}
+      style={[styles.notice, { backgroundColor: success ? colors.successSoft : colors.ink }]}
       accessibilityLiveRegion="polite"
       accessibilityRole="alert"
     >
-      <Text style={[styles.text, { color: success ? colors.successText : colors.warningText }]}>{message}</Text>
+      <Text style={[styles.text, { color: success ? colors.successInk : colors.textOnColor }]}>{message}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  notice: { borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  notice: {
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
+    ...shadows.md,
+  },
   text: { ...typography.bodyStrong },
 });

@@ -1,14 +1,15 @@
 /**
- * Card « Objectif du jour » partagée par l'Accueil et le résultat de session (RG-44, design §4.1 / §4.4).
+ * Objectif du jour (RG-44, design §4.5) : anneau « x / objectif » partagé par l'Accueil
+ * et le résultat de session.
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { plural } from '@/domain/format';
 import type { GoalStatus } from '@/domain/streak';
-import { colors, typography } from '@/theme/tokens';
+import { colors } from '@/theme/tokens';
 
-import { Card } from './Card';
-import { ProgressBar } from './ProgressBar';
+import { useCountUp } from './CountUp';
+import { ProgressRing } from './ProgressRing';
 
 export function goalMessage(status: GoalStatus): string {
   return status.reached
@@ -16,28 +17,35 @@ export function goalMessage(status: GoalStatus): string {
     : `Encore ${status.remaining} ${plural(status.remaining, 'carte')} pour atteindre ton objectif`;
 }
 
-export function GoalCard({ status, title }: { status: GoalStatus; title?: string }) {
+export interface GoalRingProps {
+  status: GoalStatus;
+  size?: number;
+  /** Compteur animé 0 → x (résultat de session, design §6). */
+  countUp?: boolean;
+}
+
+export function GoalRing({ status, size = 64, countUp = false }: GoalRingProps) {
+  const animated = useCountUp(countUp ? status.done : 0);
+  const done = countUp ? animated : status.done;
   return (
-    <Card title={title}>
-      <View style={styles.row} accessible accessibilityLabel={`Objectif du jour : ${status.done} sur ${status.goal}`}>
-        <Text style={styles.label}>Objectif du jour</Text>
-        <Text style={styles.value} testID="goal-value">
-          {status.done} / {status.goal}
-        </Text>
-      </View>
-      <ProgressBar
-        value={status.ratio}
-        color={status.reached ? 'success' : 'primary'}
-        accessibilityLabel="Progression de l'objectif du jour"
-      />
-      <Text style={styles.message}>{goalMessage(status)}</Text>
-    </Card>
+    <ProgressRing
+      value={status.ratio}
+      size={size}
+      thickness={9}
+      accessibilityLabel={`Objectif du jour : ${status.done} sur ${status.goal}`}
+      testID="goal-ring"
+    >
+      {/* Texte « x / objectif » sur deux lignes ; contenu textuel « x / objectif ». */}
+      <Text style={styles.value} maxFontSizeMultiplier={1.3} testID="goal-value">
+        {done}
+        {'\n'}
+        <Text style={styles.unit}>/ {status.goal}</Text>
+      </Text>
+    </ProgressRing>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { ...typography.body, color: colors.text },
-  value: { ...typography.bodyStrong, color: colors.text },
-  message: { ...typography.caption, color: colors.textMuted },
+  value: { fontSize: 18, lineHeight: 19, fontWeight: '900', color: colors.ink, textAlign: 'center' },
+  unit: { fontSize: 11, lineHeight: 13, fontWeight: '800', color: colors.inkMuted },
 });

@@ -1,9 +1,11 @@
 /**
- * Chip de filtre (design §3.6).
+ * Chip de filtre 3D (design §4.9).
  */
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme/tokens';
+import { colors, depth, radius, spacing, typography } from '@/theme/tokens';
+
+import { PressableRaised } from './Raised';
 
 export interface ChipProps {
   label: string;
@@ -11,37 +13,43 @@ export interface ChipProps {
   onToggle: () => void;
   /** Dernier élément sélectionné du groupe : le tap n'a pas d'effet (RG-50). */
   locked?: boolean;
+  /** Emoji décoratif avant le libellé (catégories). */
+  emoji?: string;
   testID?: string;
 }
 
-export function Chip({ label, selected, onToggle, locked = false, testID }: ChipProps) {
+export function Chip({ label, selected, onToggle, locked = false, emoji, testID }: ChipProps) {
+  const color = selected ? colors.primaryInk : colors.ink;
   return (
-    <Pressable
+    <PressableRaised
       onPress={onToggle}
       accessibilityRole="checkbox"
       accessibilityLabel={label}
       accessibilityState={{ checked: selected }}
       accessibilityHint={locked ? 'Garde au moins un élément sélectionné.' : undefined}
       testID={testID}
-      style={({ pressed }) => [styles.chip, selected ? styles.selected : styles.idle, pressed && styles.pressed]}
+      lipColor={selected ? colors.primary : colors.border}
+      depth={depth.sm}
+      radius={radius.pill}
+      faceStyle={[styles.chip, selected ? styles.selected : styles.idle]}
     >
-      <Text style={[styles.label, { color: selected ? colors.primaryPressed : colors.text }]}>
-        {selected ? `✓ ${label}` : label}
-      </Text>
-    </Pressable>
+      <View style={styles.row}>
+        {selected ? <Text style={[styles.label, { color }]}>✓</Text> : null}
+        {emoji ? (
+          <Text style={styles.label} accessible={false}>
+            {emoji}
+          </Text>
+        ) : null}
+        <Text style={[styles.label, { color }]}>{label}</Text>
+      </View>
+    </PressableRaised>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: {
-    minHeight: 44,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    borderWidth: 1.5,
-    justifyContent: 'center',
-  },
-  idle: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
+  chip: { minHeight: 44, paddingHorizontal: spacing.lg, borderWidth: 2, justifyContent: 'center' },
+  idle: { backgroundColor: colors.surface, borderColor: colors.border },
   selected: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  pressed: { opacity: 0.85 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { ...typography.bodyStrong },
 });
