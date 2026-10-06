@@ -32,7 +32,7 @@ export function GoalRing({ status, size = 64, countUp = false }: GoalRingProps) 
       value={status.ratio}
       size={size}
       thickness={9}
-      accessibilityLabel={`Objectif du jour : ${status.done} sur ${status.goal}`}
+      accessibilityLabel={`Objectif du jour : ${status.done} sur ${status.goal}`}
       testID="goal-ring"
     >
       {/* Texte « x / objectif » sur deux lignes ; contenu textuel « x / objectif ». */}

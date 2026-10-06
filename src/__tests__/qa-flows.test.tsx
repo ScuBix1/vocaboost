@@ -73,10 +73,11 @@ describe('QA — abandon du test (RG-67, AC-07.11)', () => {
     for (let i = 0; i < 3; i++) {
       await fireEvent.press(screen.getByTestId('test-option-1'));
       await fireEvent.press(screen.getByTestId('test-next'));
+      await waitGuard(); // réponse délibérée après le verrou de « Suivant » (V2-01)
     }
     await fireEvent.press(screen.getByTestId('test-quit'));
     expect(alertSpy).toHaveBeenCalledWith(
-      'Abandonner le test ?',
+      'Abandonner le test ?',
       expect.stringContaining('Ta progression dans ce test sera perdue'),
       expect.any(Array),
       expect.anything(),
@@ -118,6 +119,7 @@ describe('QA — abandon du test (RG-67, AC-07.11)', () => {
       await fireEvent.press(screen.getByTestId('test-option-0'));
       await fireEvent.press(screen.getByTestId('test-option-1'));
       await fireEvent.press(screen.getByTestId('test-next'));
+      await waitGuard(); // réponse délibérée après le verrou de « Suivant » (V2-01)
     }
     await waitFor(() => expect(screen.getByText('Résultat du test')).toBeTruthy());
     const [record] = useLearnerStore.getState().testHistory;
@@ -180,7 +182,8 @@ describe('QA — session', () => {
       await fireEvent.press(screen.getByTestId('session-known'));
       await waitGuard();
     }
-    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
+    await waitGuard(); // tap délibéré : le résultat ignore les taps des 300 premières ms
     await fireEvent.press(screen.getByTestId('result-new-session'));
     await waitFor(() => expect(screen.getAllByText('Carte 1 / 10').length).toBeGreaterThan(0));
   });
@@ -197,7 +200,7 @@ describe('QA re-test — verrou anti-double-tap (300 ms) et usage rapide normal'
       await advance(350);
       await fireEvent.press(screen.getByTestId('session-known'));
     }
-    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
     expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([10]);
   });
 
@@ -243,7 +246,7 @@ describe('QA — réinitialisation via Réglages (AC-10.2, AC-10.3)', () => {
     const before = JSON.stringify(useLearnerStore.getState());
     await renderRouter(routes, { initialUrl: '/settings' });
     await fireEvent.press(screen.getByTestId('settings-reset'));
-    expect(alertSpy.mock.calls[0][0]).toBe('Réinitialiser ma progression ?');
+    expect(alertSpy.mock.calls[0][0]).toBe('Réinitialiser ma progression ?');
     expect(alertSpy.mock.calls[0][1]).toContain('Cette action est irréversible');
     await act(() => lastAlertButton('Annuler').onPress?.());
     expect(JSON.stringify(useLearnerStore.getState())).toBe(before);

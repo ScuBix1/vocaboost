@@ -37,14 +37,14 @@ describe('Filtres de session (RG-50 → RG-53)', () => {
   it('AC-06.5 / RG-53 : résumé de l’accueil', () => {
     expect(formatFilterSummary(DEFAULT_FILTERS)).toBeNull();
     expect(formatFilterSummary({ categories: ['travel', 'food'], levels: ['A1', 'A2'] })).toBe(
-      'Filtres : 2 catégories, A1-A2',
+      'Filtres : 2 catégories, A1-A2',
     );
-    expect(formatFilterSummary({ categories: ['travel'], levels: ['A1'] })).toBe('Filtres : Voyage, A1');
+    expect(formatFilterSummary({ categories: ['travel'], levels: ['A1'] })).toBe('Filtres : Voyage, A1');
     expect(formatFilterSummary({ categories: [...CATEGORY_IDS], levels: ['A1', 'B1'] })).toBe(
-      'Filtres : toutes les catégories, A1, B1',
+      'Filtres : toutes les catégories, A1, B1',
     );
     expect(formatFilterSummary({ categories: ['travel', 'food'], levels: [...LEVELS] })).toBe(
-      'Filtres : 2 catégories, tous niveaux',
+      'Filtres : 2 catégories, tous niveaux',
     );
   });
 

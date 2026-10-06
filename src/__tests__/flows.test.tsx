@@ -126,6 +126,7 @@ describe('Test hebdomadaire (US-07, US-08)', () => {
       expect(screen.queryByTestId('test-next')).toBeNull(); // pas de « passer »
       await fireEvent.press(screen.getByTestId('test-option-0'));
       await fireEvent.press(screen.getByTestId('test-next'));
+      await waitGuard(); // réponse délibérée après le verrou de « Suivant » (V2-01)
     }
     await waitFor(() => expect(screen.getByText('Résultat du test')).toBeTruthy());
     const history = useLearnerStore.getState().testHistory;

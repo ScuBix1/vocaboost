@@ -102,7 +102,7 @@ export function Flashcard({ word, index, total, flipped, onFlip, onSpeak }: Flas
       useNativeDriver: true,
     }).start();
     if (flipped) {
-      AccessibilityInfo.announceForAccessibility(`Traduction : ${word.fr}. Exemple : ${word.example}`);
+      AccessibilityInfo.announceForAccessibility(`Traduction : ${word.fr}. Exemple : ${word.example}`);
     }
   }, [flipped, progress, reduceMotion, word.fr, word.example]);
 
@@ -148,7 +148,7 @@ export function Flashcard({ word, index, total, flipped, onFlip, onSpeak }: Flas
             onPress={onFlip}
             disabled={flipped}
             accessibilityRole="button"
-            accessibilityLabel={`Mot anglais : ${word.en}. Niveau ${word.level}, ${word.categoryLabel}. Carte ${index} sur ${total}`}
+            accessibilityLabel={`Mot anglais : ${word.en}. Niveau ${word.level}, ${word.categoryLabel}. Carte ${index} sur ${total}`}
             accessibilityHint="Touchez deux fois pour voir la traduction"
             testID="flashcard-front"
             style={styles.pressArea}

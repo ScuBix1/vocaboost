@@ -84,7 +84,7 @@ export function formatCategoriesCount(categories: readonly CategoryId[]): string
 export function formatFilterSummary(filters: Filters): string | null {
   if (!isFilterActive(filters)) return null;
   const levels = allLevelsSelected(filters) ? 'tous niveaux' : formatLevels(filters.levels);
-  return `Filtres : ${formatCategoriesCount(filters.categories)}, ${levels}`;
+  return `Filtres : ${formatCategoriesCount(filters.categories)}, ${levels}`;
 }
 
 /** Ligne « Catégories : … » de l'onglet Apprendre (design §4.2). */

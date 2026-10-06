@@ -1,6 +1,10 @@
 /**
  * Confettis de célébration (design §4.12) : `Animated` natif, une seule fois, derrière le contenu.
  * « Réduire les animations » : 10 confettis immobiles déjà posés.
+ *
+ * Recette V2-02 : le calque remplit son parent (la zone de Vobi sur les écrans de résultat, et non
+ * plus tout l'écran) et laisse libre une colonne centrale `clearWidth` : les confettis restent
+ * autour de Vobi et ne passent jamais derrière le titre ni le score, animés ou immobiles.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -44,12 +48,29 @@ function makePieces(count: number): Piece[] {
   }));
 }
 
-export function Confetti() {
+export interface ConfettiProps {
+  /** Largeur de la colonne centrale laissée libre (Vobi), en pt. */
+  clearWidth?: number;
+}
+
+const PIECE_MAX = 16;
+const EDGE = 6;
+
+/** Abscisse d'un confetti : sur toute la largeur, ou d'un côté de la colonne libre (alterné). */
+export function confettiLeft(x: number, i: number, width: number, clearWidth: number): number {
+  if (clearWidth <= 0) return 12 + x * (width - 34);
+  const side = Math.max(0, (width - clearWidth) / 2 - EDGE - PIECE_MAX);
+  const offset = EDGE + x * side;
+  return i % 2 === 0 ? offset : width - offset - PIECE_MAX;
+}
+
+export function Confetti({ clearWidth = 0 }: ConfettiProps) {
   const reduceMotion = useReduceMotion();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const pieces = useMemo(() => makePieces(reduceMotion ? CONFETTI_STILL_COUNT : CONFETTI_COUNT), [reduceMotion]);
-  const progress = useRef(pieces.map(() => new Animated.Value(0))).current;
-  const fade = useRef(pieces.map(() => new Animated.Value(1))).current;
+  // Toujours CONFETTI_COUNT valeurs : le réglage peut changer après le montage (10 ↔ 24 confettis).
+  const progress = useRef(Array.from({ length: CONFETTI_COUNT }, () => new Animated.Value(0))).current;
+  const fade = useRef(Array.from({ length: CONFETTI_COUNT }, () => new Animated.Value(1))).current;
 
   useEffect(() => {
     if (reduceMotion || size.height === 0) return;
@@ -84,13 +105,15 @@ export function Confetti() {
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
+      aria-hidden
       onLayout={onLayout}
       testID="confetti"
     >
       {size.width > 0
         ? pieces.map((p, i) => {
-            const left = 12 + p.x * (size.width - 34);
-            const endY = p.fall * size.height + 40;
+            const left = confettiLeft(p.x, i, size.width, clearWidth);
+            // Point d'arrivée dans la hauteur du calque (bord bas compris) : rien ne déborde dessous.
+            const endY = clearWidth > 0 ? (0.1 + p.fall * 1.9) * (size.height - PIECE_MAX) : p.fall * size.height + 40;
             const pieceStyle = reduceMotion
               ? { transform: [{ translateY: endY }, { rotate: `${p.tilt}deg` }] }
               : {

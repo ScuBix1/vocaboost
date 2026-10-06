@@ -87,8 +87,8 @@ export default function HomeScreen() {
                 Plus que{' '}
                 <Text style={styles.bold}>
                   {goal.remaining} {plural(goal.remaining, 'carte')}
-                </Text>{' '}
-                !
+                </Text>
+                {'\u00A0!'}
               </Text>
             )}
           </View>
@@ -96,7 +96,7 @@ export default function HomeScreen() {
         <Card
           style={styles.tile}
           contentStyle={[styles.tileFace, styles.streakFace]}
-          accessibilityLabel={`Série actuelle : ${streaks.current} ${dayUnit(streaks.current)} de suite`}
+          accessibilityLabel={`Série actuelle : ${streaks.current} ${dayUnit(streaks.current)} de suite`}
           testID="home-streak"
         >
           <Text style={styles.overline}>Série</Text>
@@ -115,7 +115,7 @@ export default function HomeScreen() {
 
       <Card
         onPress={() => router.navigate('/progress')}
-        accessibilityLabel={`Mots maîtrisés : ${stats.percent} %, ${stats.mastered} sur ${stats.total}. Ouvrir Progrès`}
+        accessibilityLabel={`Mots maîtrisés : ${stats.percent} %, ${stats.mastered} sur ${stats.total}. Ouvrir Progrès`}
         contentStyle={styles.masteredFace}
         testID="home-mastered"
       >
@@ -177,7 +177,7 @@ export default function HomeScreen() {
           contentStyle={styles.testFace}
         >
           <Text style={styles.h3}>
-            ✅ Test de la semaine terminé : {testStatus.record.correct}/{testStatus.record.total}
+            ✅ Test de la semaine terminé : {testStatus.record.correct}/{testStatus.record.total}
           </Text>
           <ResultBadge passed={testStatus.record.passed} />
           <Text style={styles.caption}>Prochain test disponible lundi</Text>

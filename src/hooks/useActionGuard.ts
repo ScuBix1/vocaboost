@@ -35,3 +35,20 @@ export function useActionGuard(durationMs = ACTION_GUARD_MS) {
 
   return { locked, lock, isLocked };
 }
+
+/**
+ * Verrou d'arrivée sur un écran (symétrie de V2-01) : le 2e tap d'un double tap sur le dernier
+ * « Je savais » ou sur « Voir le résultat » ne doit pas actionner le bouton de l'écran de résultat
+ * qui apparaît sous le doigt (« Accueil », « Retour à l'accueil »). Vrai pendant `durationMs`
+ * après le montage ; sans effet visuel (pas de nouveau rendu).
+ */
+export function useArrivalGuard(durationMs = ACTION_GUARD_MS) {
+  const mountedAt = useRef<number | null>(null);
+  useEffect(() => {
+    mountedAt.current = Date.now();
+  }, []);
+  return useCallback(
+    () => mountedAt.current === null || Date.now() - mountedAt.current < durationMs,
+    [durationMs],
+  );
+}

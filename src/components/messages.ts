@@ -7,9 +7,9 @@ import type { GoalStatus } from '@/domain/streak';
 
 /** Message de Vobi sur l'Accueil, par priorité décroissante (design §5.1). */
 export function homeMessage(seen: number, goal: GoalStatus, streak: number): string {
-  if (seen === 0) return 'Salut ! Prêt pour tes 10 premiers mots ?';
-  if (goal.reached) return 'Objectif atteint ✅ Chaque carte en plus compte !';
-  if (goal.done === 0 && streak > 0) return `🔥 ${streak} ${dayUnit(streak)} ! Une carte aujourd'hui et la flamme continue.`;
+  if (seen === 0) return 'Salut ! Prêt pour tes 10 premiers mots ?';
+  if (goal.reached) return 'Objectif atteint ✅ Chaque carte en plus compte !';
+  if (goal.done === 0 && streak > 0) return `🔥 ${streak} ${dayUnit(streak)} ! Une carte aujourd'hui et la flamme continue.`;
   return `Encore ${goal.remaining} ${plural(goal.remaining, 'carte')} et l'objectif du jour est dans la poche 💪`;
 }
 
@@ -17,5 +17,5 @@ export function homeMessage(seen: number, goal: GoalStatus, streak: number): str
 export function sessionResultSubtitle(known: number, total: number): string {
   return total > 0 && known / total >= 0.5
     ? "Excellent rythme, tes mots s'accrochent."
-    : 'Bel effort ! Chaque carte te rapproche du but.';
+    : 'Bel effort ! Chaque carte te rapproche du but.';
 }

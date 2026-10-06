@@ -311,7 +311,7 @@ Bandeau fixé en bas (remplace la zone de 76 pt v1), rayon 28 en haut, padding 1
 Annonce lecteur d'écran v1 inchangée (la phrase « ✓ Bonne réponse ! » / « La bonne réponse était : … »).
 
 ### 4.12 Confetti (nouveau)
-`components/Confetti.tsx` : 24 `Animated.View` (rectangles 10 × 16 rayon 3 et ronds 11), couleurs tirées de `primary`, `sun`, `flame`, `successBright`, `#1C8CEB`, `#E0458F`. Positions x aléatoires, départ y −20, chute jusqu'à 45 % de la hauteur, rotation 1-3 tours, durée 1 400-1 800 ms, `Easing.out(Easing.quad)`, fondu sur les 300 dernières ms, une seule fois, `useNativeDriver: true`, `pointerEvents="none"`, derrière le contenu. **Réduire les animations** : 10 confettis immobiles déjà posés (aucun mouvement). Non lu par les lecteurs d'écran.
+`components/Confetti.tsx` : 24 `Animated.View` (rectangles 10 × 16 rayon 3 et ronds 11), couleurs tirées de `primary`, `sun`, `flame`, `successBright`, `#1C8CEB`, `#E0458F`. Positions x aléatoires, départ y −20, chute jusqu'à 45 % de la hauteur, rotation 1-3 tours, durée 1 400-1 800 ms, `Easing.out(Easing.quad)`, fondu sur les 300 dernières ms, une seule fois, `useNativeDriver: true`, `pointerEvents="none"`, derrière le contenu. **Réduire les animations** : 10 confettis immobiles déjà posés (aucun mouvement). Non lu par les lecteurs d'écran. *Corrigé après recette (V2-02)* : le calque occupe la zone de Vobi (pleine largeur, hauteur de Vobi) et laisse libre une colonne centrale de la largeur de Vobi + 24 ; les confettis tombent de part et d'autre de Vobi, jamais derrière le titre ni le score, animés comme immobiles.
 
 ### 4.13 Autres
 - **Badge** : rayon 10, `caption` 900, padding 4/10 ; variantes `level` (`primarySoft`/`primaryInk`), `success` (« Réussi »), `danger` (« À retravailler »), `big` (16 pt, padding 8/14).
@@ -377,7 +377,7 @@ Les chiffres « {connus} » et « {x} » comptent de 0 à la valeur en 600 ms (�
 
 ### 5.5 Progrès
 1. `h1` « Progrès ».
-2. **Hero** Card `primary` : « {pct} % » 44/900 blanc + « de la banque maîtrisée » ; 🚀 à droite ; barre 16 `sun` sur piste blanche 25 % ; deux mini-tuiles translucides (`rgba(255,255,255,0.16)`) : « 👀 {vus} / 200 · Mots vus » et « ✅ {maîtrisés} / 200 · Mots maîtrisés ».
+2. **Hero** Card `primary` : « {pct} % » 44/900 blanc + « de la banque maîtrisée » ; 🚀 à droite ; barre 16 `sun` sur piste blanche 25 % ; deux mini-tuiles translucides (`rgba(255,255,255,0.10)`, soit ≈ 4,9:1 pour le texte blanc — corrigé après recette V2-04) : « 👀 {vus} / 200 · Mots vus » et « ✅ {maîtrisés} / 200 · Mots maîtrisés ».
 3. **Card série** : « 🔥 {s} jours · Série actuelle » (`flameInk`) et « 🏆 {b} jours · Meilleure série » ; WeekStrip 28 pt en dessous.
 4. `h2` « Par catégorie » puis grille 2 colonnes de CategoryCard dans l'ordre RG-04.
 5. `caption` : « Un mot est maîtrisé quand tu l'as su plusieurs fois de suite. »
@@ -406,7 +406,7 @@ Comportements v1 inchangés : feedback instantané, pas d'avancement automatique
 3. Ligne score : « {x} / {N} » `score` + colonne « {pct} % » (22/900, `successInk` ou `dangerInk`) et Badge `big` « 🏅 Réussi » ou « À retravailler ».
 4. `caption` « Seuil de réussite : 70 % ».
 5. Card « Mots à revoir ({k}) » : lignes « [pastille catégorie] **{en}** — {fr} », séparateurs pointillés ; k = 0 : Vobi `correct` 56 + « Aucune erreur, bravo ! 🎉 ».
-6. `caption` « Ces mots reviendront plus souvent dans tes sessions. » (si raté, précédé de « On y retourne ! »).
+6. `caption` « Ces mots reviendront plus souvent dans tes sessions. » (si raté, précédé de « On y retourne ! »). Aucun mot à revoir (k = 0) : « Continue tes sessions pour garder ce niveau. » à la place (recette V2-06).
 7. `primary` fixé en bas « Retour à l'accueil ».
 
 ### 5.9 Réglages

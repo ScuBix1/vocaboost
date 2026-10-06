@@ -71,11 +71,12 @@ describe('QA v2 — test hebdomadaire : bandeau de feedback', () => {
     for (let i = 0; i < 10; i++) {
       await fireEvent.press(screen.getByTestId('test-option-0'));
       await fireEvent.press(screen.getByTestId('test-next'));
+      await act(() => jest.advanceTimersByTime(ACTION_GUARD_MS + 20)); // réponse délibérée (V2-01)
       if (screen.queryByText('Résultat du test')) break;
     }
     const messages = announce.mock.calls.map(([m]) => m);
-    expect(messages.every((m) => m === 'Bonne réponse !' || m.startsWith('Question') || /^La bonne réponse était : .+/.test(m))).toBe(true);
-    expect(messages.filter((m) => m === 'Bonne réponse !' || m.startsWith('La bonne réponse')).length).toBe(10);
+    expect(messages.every((m) => m === 'Bonne réponse !' || m.startsWith('Question') || /^La bonne réponse était\s: .+/.test(m))).toBe(true);
+    expect(messages.filter((m) => m === 'Bonne réponse !' || m.startsWith('La bonne réponse')).length).toBe(10);
   });
 
   it('Vobi du bandeau est masqué aux lecteurs d’écran ; le texte porte le sens', async () => {
@@ -93,8 +94,8 @@ describe('QA v2 — test hebdomadaire : bandeau de feedback', () => {
   // l'option C ou D de la question suivante remonte sous le doigt et le 2e tap d'un double tap
   // y répond à l'aveugle (reproduit sur le web à 360×640 et 320×568 ; 0 cas en v1, dont le pied
   // de 76 pt restait réservé). Attendu : comme pour la session (BUG-02), un tap sur une option
-  // arrivant moins de ACTION_GUARD_MS après « Suivant » est ignoré.
-  test.failing('V2-01 : un tap sur une option juste après « Suivant » (double tap) est ignoré', async () => {
+  // arrivant moins de ACTION_GUARD_MS après « Suivant » est ignoré. Corrigé (verrou dans next()).
+  it('V2-01 : un tap sur une option juste après « Suivant » (double tap) est ignoré', async () => {
     seedSeen(10);
     await renderRouter(routes, { initialUrl: '/test-run' });
     await fireEvent.press(screen.getByTestId('test-option-0'));
@@ -122,7 +123,7 @@ describe('QA v2 — célébrations (design §5.4, §5.8)', () => {
   it('résultat de session à 40 % : pas de confettis, sous-titre encourageant', async () => {
     session(4, 10);
     await renderRouter(routes, { initialUrl: '/session-result' });
-    await waitFor(() => expect(screen.getByText('Bel effort ! Chaque carte te rapproche du but.')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Bel effort ! Chaque carte te rapproche du but.')).toBeTruthy());
     expect(screen.queryByTestId('confetti', hidden)).toBeNull();
   });
 
@@ -136,14 +137,14 @@ describe('QA v2 — célébrations (design §5.4, §5.8)', () => {
   it('test réussi (70 %) : confettis et libellé de score complet pour le lecteur d’écran', async () => {
     useResultsStore.setState({ lastTest: { record: testRecord(7, 10), missed: [] } });
     await renderRouter(routes, { initialUrl: '/test-result' });
-    await waitFor(() => expect(screen.getByLabelText('Score : 7 sur 10, 70 pour cent, Réussi')).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText('Score : 7 sur 10, 70 pour cent, Réussi')).toBeTruthy());
     expect(screen.getByTestId('confetti', hidden)).toBeTruthy();
   });
 
   it('test à retravailler (60 %) : pas de confettis, ton encourageant', async () => {
     useResultsStore.setState({ lastTest: { record: testRecord(6, 10), missed: [WORDS[0]] } });
     await renderRouter(routes, { initialUrl: '/test-result' });
-    await waitFor(() => expect(screen.getByLabelText('Score : 6 sur 10, 60 pour cent, À retravailler')).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText('Score : 6 sur 10, 60 pour cent, À retravailler')).toBeTruthy());
     expect(screen.queryByTestId('confetti', hidden)).toBeNull();
     expect(screen.getByText(/On y retourne !/)).toBeTruthy();
   });

@@ -13,6 +13,8 @@ import { OptionButton, type OptionState } from '@/components/OptionButton';
 import { ProgressBar } from '@/components/ProgressBar';
 import { WORDS, WORDS_BY_ID } from '@/data/words';
 import type { Word } from '@/domain/types';
+import { useActionGuard } from '@/hooks/useActionGuard';
+import { useClientReady } from '@/hooks/useClientReady';
 import { generateTest, getTestStatus, type TestAnswer, type TestQuestion } from '@/domain/weeklyTest';
 import { confirmDestructive } from '@/services/confirm';
 import { useLearnerStore } from '@/store/useLearnerStore';
@@ -41,7 +43,13 @@ function backToTestTab() {
   router.navigate('/test');
 }
 
+/** Écran neutre tant que le tirage ne peut pas se faire (V2-07 / RT-03). */
 export default function TestRunScreen() {
+  const ready = useClientReady();
+  return ready ? <TestRun /> : <View style={styles.safe} testID="test-run-pending" />;
+}
+
+function TestRun() {
   const [{ questions, startedAt }] = useState<DrawnTest>(drawTest);
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -51,11 +59,14 @@ export default function TestRunScreen() {
   const completeTest = useLearnerStore((s) => s.completeTest);
   const setLastTest = useResultsStore((s) => s.setLastTest);
   const insets = useSafeAreaInsets();
+  // Verrou posé par « Suivant » : le 2e tap d'un double tap tombe sur une option de la question
+  // suivante (remontée sous le doigt quand le bandeau disparaît) et doit être ignoré (V2-01).
+  const guard = useActionGuard();
 
   // Abandon : confirmation, rien n'est enregistré (RG-67).
   const quit = useCallback(() => {
     confirmDestructive({
-      title: 'Abandonner le test ?',
+      title: 'Abandonner le test ?',
       message: 'Ta progression dans ce test sera perdue. Tu pourras le recommencer plus tard cette semaine.',
       cancelLabel: 'Continuer le test',
       confirmLabel: 'Abandonner',
@@ -80,19 +91,20 @@ export default function TestRunScreen() {
 
   const choose = (optionIndex: number) => {
     // Réponse non modifiable (RG-66) ; un double tap rapide ne compte qu'une fois (design §5.4).
-    if (selected !== null || answeredIndex.current === qIndex) return;
+    if (selected !== null || answeredIndex.current === qIndex || guard.isLocked()) return;
     answeredIndex.current = qIndex;
     const correct = optionIndex === question.correctIndex;
     answers.current[qIndex] = { wordId: question.wordId, correct };
     setSelected(optionIndex);
     AccessibilityInfo.announceForAccessibility(
-      correct ? 'Bonne réponse !' : `La bonne réponse était : ${correctLabel}`,
+      correct ? 'Bonne réponse !' : `La bonne réponse était : ${correctLabel}`,
     );
   };
 
   const next = () => {
     if (selected === null) return;
     if (!isLast) {
+      guard.lock();
       setSelected(null);
       setQIndex(qIndex + 1);
       return;
@@ -140,7 +152,7 @@ export default function TestRunScreen() {
       <ScrollView contentContainerStyle={[styles.content, selected === null && { paddingBottom: spacing.lg + insets.bottom }]}>
         <View style={styles.instructionRow}>
           <Text style={styles.instruction}>
-            {enToFr ? 'Quelle est la traduction de ce mot ?' : 'Comment dit-on ce mot en anglais ?'}
+            {enToFr ? 'Quelle est la traduction de ce mot ?' : 'Comment dit-on ce mot en anglais ?'}
           </Text>
           <Badge label={enToFr ? 'EN → FR' : 'FR → EN'} variant="level" />
         </View>
@@ -162,6 +174,7 @@ export default function TestRunScreen() {
               label={option.label}
               index={i + 1}
               state={stateOf(i)}
+              locked={guard.locked}
               language={enToFr ? 'fr-FR' : 'en-US'}
               onPress={() => choose(i)}
               testID={`test-option-${i}`}

@@ -16,10 +16,13 @@ import { Screen } from '@/components/Screen';
 import { StatTile } from '@/components/StatTile';
 import { Vobi } from '@/components/Vobi';
 import { dayUnit } from '@/domain/format';
+import { useArrivalGuard } from '@/hooks/useActionGuard';
 import { useGoalStatus, useStreaks } from '@/hooks/useLearnerSelectors';
 import { useNow } from '@/hooks/useNow';
 import { useResultsStore } from '@/store/useResultsStore';
 import { colors, spacing, typography } from '@/theme/tokens';
+
+const VOBI_SIZE = 150;
 
 function goHome() {
   if (router.canDismiss()) router.dismissAll();
@@ -31,6 +34,7 @@ export default function SessionResultScreen() {
   const now = useNow();
   const goal = useGoalStatus(now);
   const streaks = useStreaks(now);
+  const justArrived = useArrivalGuard();
 
   // Retour natif = « Accueil » (design §1.2).
   useEffect(() => {
@@ -47,19 +51,22 @@ export default function SessionResultScreen() {
 
   return (
     <Screen
-      background={celebrate ? <Confetti /> : null}
       contentStyle={styles.content}
       footer={
         <>
-          <Button label="Nouvelle session" onPress={() => router.replace('/session')} testID="result-new-session" />
-          <Button label="Accueil" variant="secondary" onPress={goHome} testID="result-home" />
+          <Button label="Nouvelle session" onPress={() => !justArrived() && router.replace('/session')} testID="result-new-session" />
+          <Button label="Accueil" variant="secondary" onPress={() => !justArrived() && goHome()} testID="result-home" />
         </>
       }
     >
-      <Vobi mood={celebrate ? 'correct' : 'hello'} size={150} animateIn />
+      {/* Confettis limités à la zone de Vobi, jamais derrière le titre (V2-02). */}
+      <View style={styles.hero}>
+        {celebrate ? <Confetti clearWidth={VOBI_SIZE + 24} /> : null}
+        <Vobi mood={celebrate ? 'correct' : 'hello'} size={VOBI_SIZE} animateIn style={styles.vobi} />
+      </View>
       <View style={styles.titles}>
         <Text style={styles.title} accessibilityRole="header">
-          Session terminée !
+          Session terminée !
         </Text>
         <Text style={styles.subtitle}>{sessionResultSubtitle(summary.known, summary.total)}</Text>
       </View>
@@ -89,10 +96,10 @@ export default function SessionResultScreen() {
         <GoalRing status={goal} countUp />
         <View style={styles.goalText}>
           <Text style={[styles.h3, goal.reached && styles.reached]}>
-            {goal.reached ? 'Objectif du jour atteint 🎯' : goalMessage(goal)}
+            {goal.reached ? 'Objectif du jour atteint 🎯' : goalMessage(goal)}
           </Text>
           <Text style={styles.caption}>
-            Série : 🔥 {streaks.current} {dayUnit(streaks.current)} de suite
+            Série : 🔥 {streaks.current} {dayUnit(streaks.current)} de suite
           </Text>
         </View>
       </Card>
@@ -102,6 +109,8 @@ export default function SessionResultScreen() {
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
+  hero: { alignSelf: 'stretch', alignItems: 'center', marginHorizontal: -spacing.lg, paddingVertical: spacing.sm },
+  vobi: { zIndex: 1 },
   titles: { alignItems: 'center', gap: spacing.xs },
   title: { ...typography.h1, color: colors.ink, textAlign: 'center' },
   subtitle: { ...typography.body, color: colors.inkMuted, textAlign: 'center' },

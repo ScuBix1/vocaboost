@@ -19,7 +19,7 @@ import { categoryColors, colors, spacing, typography } from '@/theme/tokens';
 const STEPS = [
   'Lis le mot anglais et cherche sa traduction.',
   'Retourne la carte pour vérifier.',
-  "Dis honnêtement si tu savais : l'app adapte tes révisions.",
+  "Dis honnêtement si tu savais : l'app adapte tes révisions.",
 ];
 
 export default function LearnScreen() {
@@ -57,7 +57,7 @@ export default function LearnScreen() {
           <Text style={styles.onPrimary}>
             10 cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore.
           </Text>
-          <Text style={styles.onPrimaryCaption}>Mots disponibles avec tes filtres : {poolSize}</Text>
+          <Text style={styles.onPrimaryCaption}>Mots disponibles avec tes filtres : {poolSize}</Text>
           {poolSize < SESSION_SIZE ? (
             <Text style={styles.onPrimaryCaption}>Ta session contiendra {poolSize} cartes.</Text>
           ) : null}
@@ -68,7 +68,7 @@ export default function LearnScreen() {
         <View
           style={styles.dots}
           accessible
-          accessibilityLabel={`Catégories : ${describeCategories(filters)}`}
+          accessibilityLabel={`Catégories : ${describeCategories(filters)}`}
         >
           {CATEGORY_IDS.map((id) => {
             const on = filters.categories.includes(id);
@@ -84,8 +84,8 @@ export default function LearnScreen() {
             );
           })}
         </View>
-        <Text style={styles.body}>Catégories : {describeCategories(filters)}</Text>
-        <Text style={styles.body}>Niveaux : {describeLevels(filters)}</Text>
+        <Text style={styles.body}>Catégories : {describeCategories(filters)}</Text>
+        <Text style={styles.body}>Niveaux : {describeLevels(filters)}</Text>
         <Button label="Modifier les filtres" variant="secondary" size="md" onPress={() => router.push('/settings')} />
       </Card>
 

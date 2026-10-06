@@ -16,6 +16,11 @@ export interface OptionButtonProps {
   label: string;
   state: OptionState;
   onPress: () => void;
+  /**
+   * Verrou anti-double-tap (V2-01) : l'option ignore les taps sans changer d'apparence
+   * (300 ms, juste après « Suivant » ; un grisé clignoterait à chaque question).
+   */
+  locked?: boolean;
   /** Position 1-based, pour l'étiquette d'accessibilité et la lettre (1 → A). */
   index: number;
   /** Langue de l'option, pour la lecture d'écran des mots anglais. */
@@ -41,8 +46,8 @@ export function optionLetter(index: number): string {
   return String.fromCharCode(64 + index);
 }
 
-export function OptionButton({ label, state, onPress, index, language, testID }: OptionButtonProps) {
-  const interactive = state === 'idle';
+export function OptionButton({ label, state, onPress, locked = false, index, language, testID }: OptionButtonProps) {
+  const interactive = state === 'idle' && !locked;
   const reduceMotion = useReduceMotion();
   const feedback = useRef(new Animated.Value(0)).current;
   const look = LOOK[state];
@@ -80,7 +85,7 @@ export function OptionButton({ label, state, onPress, index, language, testID }:
         onPress={interactive ? onPress : undefined}
         disabled={!interactive}
         accessibilityRole="button"
-        accessibilityLabel={`Option ${index} : ${label}${SUFFIX[state]}`}
+        accessibilityLabel={`Option ${index} : ${label}${SUFFIX[state]}`}
         accessibilityState={{ disabled: !interactive }}
         accessibilityLanguage={language}
         testID={testID}

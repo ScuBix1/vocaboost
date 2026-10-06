@@ -14,8 +14,11 @@ import { CountUp } from '@/components/CountUp';
 import { Screen } from '@/components/Screen';
 import { Vobi } from '@/components/Vobi';
 import { formatWeekLabel } from '@/domain/dates';
+import { useArrivalGuard } from '@/hooks/useActionGuard';
 import { useResultsStore } from '@/store/useResultsStore';
 import { categoryColors, colors, MAX_FONT_MULTIPLIER, spacing, typography } from '@/theme/tokens';
+
+const VOBI_SIZE = 120;
 
 function goHome() {
   if (router.canDismiss()) router.dismissAll();
@@ -24,6 +27,7 @@ function goHome() {
 
 export default function TestResultScreen() {
   const result = useResultsStore((s) => s.lastTest);
+  const justArrived = useArrivalGuard();
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -38,11 +42,14 @@ export default function TestResultScreen() {
 
   return (
     <Screen
-      background={record.passed ? <Confetti /> : null}
       contentStyle={styles.content}
-      footer={<Button label="Retour à l'accueil" onPress={goHome} testID="test-result-home" />}
+      footer={<Button label="Retour à l'accueil" onPress={() => !justArrived() && goHome()} testID="test-result-home" />}
     >
-      <Vobi mood={record.passed ? 'win' : 'retry'} size={120} animateIn />
+      {/* Confettis limités à la zone de Vobi, jamais derrière le titre ni le score (V2-02). */}
+      <View style={styles.hero}>
+        {record.passed ? <Confetti clearWidth={VOBI_SIZE + 24} /> : null}
+        <Vobi mood={record.passed ? 'win' : 'retry'} size={VOBI_SIZE} animateIn style={styles.vobi} />
+      </View>
       <View style={styles.titles}>
         <Text style={styles.overline}>{formatWeekLabel(record.weekId)}</Text>
         <Text style={styles.title} accessibilityRole="header">
@@ -53,7 +60,7 @@ export default function TestResultScreen() {
       <View
         style={styles.scoreRow}
         accessible
-        accessibilityLabel={`Score : ${record.correct} sur ${record.total}, ${record.percent} pour cent, ${record.passed ? 'Réussi' : 'À retravailler'}`}
+        accessibilityLabel={`Score : ${record.correct} sur ${record.total}, ${record.percent} pour cent, ${record.passed ? 'Réussi' : 'À retravailler'}`}
       >
         <Text style={styles.score} maxFontSizeMultiplier={MAX_FONT_MULTIPLIER} testID="test-result-score">
           <CountUp value={record.correct} /> / {record.total}
@@ -65,14 +72,14 @@ export default function TestResultScreen() {
           <ResultBadge passed={record.passed} size="lg" />
         </View>
       </View>
-      <Text style={styles.caption}>Seuil de réussite : 70 %</Text>
+      <Text style={styles.caption}>Seuil de réussite : 70 %</Text>
 
       <Card style={styles.full} contentStyle={styles.missFace}>
         <Text style={styles.h3} accessibilityRole="header">{`Mots à revoir (${missed.length})`}</Text>
         {missed.length === 0 ? (
           <View style={styles.noMiss}>
             <Vobi mood="correct" size={56} />
-            <Text style={styles.body}>Aucune erreur, bravo ! 🎉</Text>
+            <Text style={styles.body}>Aucune erreur, bravo ! 🎉</Text>
           </View>
         ) : (
           missed.map((w, i) => {
@@ -99,7 +106,9 @@ export default function TestResultScreen() {
         )}
       </Card>
       <Text style={styles.caption}>
-        {record.passed ? '' : 'On y retourne ! '}Ces mots reviendront plus souvent dans tes sessions.
+        {missed.length === 0
+          ? 'Continue tes sessions pour garder ce niveau.' // V2-06 : aucun mot à revoir
+          : `${record.passed ? '' : 'On y retourne ! '}Ces mots reviendront plus souvent dans tes sessions.`}
       </Text>
     </Screen>
   );
@@ -107,6 +116,8 @@ export default function TestResultScreen() {
 
 const styles = StyleSheet.create({
   content: { alignItems: 'center', gap: 10, paddingTop: spacing.md },
+  hero: { alignSelf: 'stretch', alignItems: 'center', marginHorizontal: -spacing.lg, paddingVertical: spacing.sm },
+  vobi: { zIndex: 1 },
   titles: { alignItems: 'center', gap: 2 },
   overline: { ...typography.overline, color: colors.inkMuted },
   title: { ...typography.h1, color: colors.ink },

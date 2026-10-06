@@ -13,7 +13,7 @@ export function StreakChip({ streak, testID }: { streak: number; testID?: string
     <View
       style={[styles.chip, off ? styles.chipOff : styles.chipOn]}
       accessible
-      accessibilityLabel={`Série actuelle : ${streak} ${streak <= 1 ? 'jour' : 'jours'}`}
+      accessibilityLabel={`Série actuelle : ${streak} ${streak <= 1 ? 'jour' : 'jours'}`}
       testID={testID}
     >
       <Text style={[styles.chipFlame, off && styles.flameOff]} accessible={false}>
@@ -33,7 +33,7 @@ export interface WeekStripProps {
 
 export function WeekStrip({ days, variant = 'compact', testID }: WeekStripProps) {
   const count = days.filter((d) => d.active).length;
-  const label = `Cette semaine : ${count} ${count <= 1 ? 'jour actif' : 'jours actifs'}`;
+  const label = `Cette semaine : ${count} ${count <= 1 ? 'jour actif' : 'jours actifs'}`;
 
   if (variant === 'compact') {
     return (

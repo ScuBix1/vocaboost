@@ -142,15 +142,15 @@ describe('Button 3D (design §4.1)', () => {
 describe('Série : StreakChip et WeekStrip (design §4.6)', () => {
   it('chip éteinte à 0, allumée sinon, avec libellé d’accessibilité', async () => {
     const { rerender } = await render(<StreakChip streak={0} />);
-    expect(screen.getByLabelText('Série actuelle : 0 jour')).toBeTruthy();
+    expect(screen.getByLabelText('Série actuelle : 0 jour')).toBeTruthy();
     await rerender(<StreakChip streak={5} />);
-    expect(screen.getByLabelText('Série actuelle : 5 jours')).toBeTruthy();
+    expect(screen.getByLabelText('Série actuelle : 5 jours')).toBeTruthy();
   });
 
   it('pastilles de la semaine issues de getWeekDays', async () => {
     const days = getWeekDays(['2026-10-05', '2026-10-06'], '2026-10-06');
     const { rerender } = await render(<WeekStrip days={days} />);
-    expect(screen.getByLabelText('Cette semaine : 2 jours actifs')).toBeTruthy();
+    expect(screen.getByLabelText('Cette semaine : 2 jours actifs')).toBeTruthy();
     expect(screen.getAllByTestId('week-day-active', hidden)).toHaveLength(2);
     expect(screen.getAllByTestId('week-day-inactive', hidden)).toHaveLength(5);
     await rerender(<WeekStrip days={days} variant="large" />);
@@ -165,7 +165,7 @@ describe('FeedbackSheet (design §4.11)', () => {
     await render(
       <FeedbackSheet correct answer="cuisine" prompt="kitchen" direction="en-fr" actionLabel="Suivant" onNext={onNext} />,
     );
-    expect(screen.getByText('✓ Bonne réponse !')).toBeTruthy();
+    expect(screen.getByText('✓ Bonne réponse !')).toBeTruthy();
     expect(screen.getByText('kitchen = cuisine')).toBeTruthy();
     expect(flat(screen.getByTestId('test-next-face')).backgroundColor).toBe(colors.success);
     await fireEvent.press(screen.getByTestId('test-next'));
@@ -184,7 +184,7 @@ describe('FeedbackSheet (design §4.11)', () => {
       />,
     );
     expect(screen.getByText('Pas tout à fait…')).toBeTruthy();
-    expect(screen.getByText('✗ La bonne réponse était : tomorrow')).toBeTruthy();
+    expect(screen.getByText('✗ La bonne réponse était : tomorrow')).toBeTruthy();
     expect(screen.getByText('Voir le résultat')).toBeTruthy();
     expect(flat(screen.getByTestId('test-next-face')).backgroundColor).toBe(colors.danger);
   });
@@ -217,15 +217,15 @@ describe('Confetti (design §4.12)', () => {
 describe('Micro-textes v2 (design §2.4, §5.1, §5.4)', () => {
   const goal = (done: number) => computeGoalStatus(done, 10);
   it('message de Vobi par priorité décroissante', () => {
-    expect(homeMessage(0, goal(0), 0)).toBe('Salut ! Prêt pour tes 10 premiers mots ?');
-    expect(homeMessage(12, goal(10), 3)).toBe('Objectif atteint ✅ Chaque carte en plus compte !');
-    expect(homeMessage(12, goal(0), 3)).toBe("🔥 3 jours ! Une carte aujourd'hui et la flamme continue.");
+    expect(homeMessage(0, goal(0), 0)).toBe('Salut ! Prêt pour tes 10 premiers mots ?');
+    expect(homeMessage(12, goal(10), 3)).toBe('Objectif atteint ✅ Chaque carte en plus compte !');
+    expect(homeMessage(12, goal(0), 3)).toBe("🔥 3 jours ! Une carte aujourd'hui et la flamme continue.");
     expect(homeMessage(12, goal(4), 3)).toBe("Encore 6 cartes et l'objectif du jour est dans la poche 💪");
     expect(homeMessage(12, goal(9), 0)).toBe("Encore 1 carte et l'objectif du jour est dans la poche 💪");
   });
 
   it('sous-titre du résultat de session selon la part de « Je savais »', () => {
     expect(sessionResultSubtitle(5, 10)).toBe("Excellent rythme, tes mots s'accrochent.");
-    expect(sessionResultSubtitle(4, 10)).toBe('Bel effort ! Chaque carte te rapproche du but.');
+    expect(sessionResultSubtitle(4, 10)).toBe('Bel effort ! Chaque carte te rapproche du but.');
   });
 });

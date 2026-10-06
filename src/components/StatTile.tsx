@@ -33,7 +33,7 @@ const TONES: Record<StatTone, { bg: string; fg: string; border?: string }> = {
 export function StatTile({ value, label, emoji, sublabel, tone = 'default', a11yValue, onPress, testID, valueTestID }: StatTileProps) {
   const t = TONES[tone];
   const spoken = a11yValue ?? (typeof value === 'string' || typeof value === 'number' ? value : '');
-  const a11yLabel = `${label} : ${spoken}${sublabel ? ` ${sublabel}` : ''}`;
+  const a11yLabel = `${label} : ${spoken}${sublabel ? ` ${sublabel}` : ''}`;
   const tileStyle = [styles.tile, { backgroundColor: t.bg }, t.border ? { borderWidth: 2, borderColor: t.border } : null];
   const content = (
     <>

@@ -58,7 +58,7 @@ export function FeedbackSheet({ correct, answer, prompt, direction, actionLabel,
         <View style={styles.texts} accessibilityLiveRegion="polite">
           {correct ? (
             <>
-              <Text style={[styles.title, { color: ink }]}>✓ Bonne réponse !</Text>
+              <Text style={[styles.title, { color: ink }]}>✓ Bonne réponse !</Text>
               <Text style={[styles.caption, { color: ink }]}>
                 {en} = {fr}
               </Text>
@@ -66,7 +66,7 @@ export function FeedbackSheet({ correct, answer, prompt, direction, actionLabel,
           ) : (
             <>
               <Text style={[styles.title, { color: ink }]}>Pas tout à fait…</Text>
-              <Text style={[styles.strong, { color: ink }]}>✗ La bonne réponse était : {answer}</Text>
+              <Text style={[styles.strong, { color: ink }]}>✗ La bonne réponse était : {answer}</Text>
             </>
           )}
         </View>

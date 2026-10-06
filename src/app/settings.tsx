@@ -39,7 +39,7 @@ export default function SettingsScreen() {
 
   const confirmReset = () =>
     confirmDestructive({
-      title: 'Réinitialiser ma progression ?',
+      title: 'Réinitialiser ma progression ?',
       message:
         'Cette action est irréversible. Tes mots vus, ta série et l’historique des tests seront effacés. Ton objectif et tes filtres sont conservés.',
       cancelLabel: 'Annuler',
@@ -133,7 +133,7 @@ export default function SettingsScreen() {
         </View>
         {help === 'categories' ? <Notice message={KEEP_ONE_MESSAGE} onHide={hideHelp} /> : null}
         <Text style={styles.caption} testID="settings-pool-size">
-          Mots disponibles : {poolSize}
+          Mots disponibles : {poolSize}
         </Text>
       </View>
 

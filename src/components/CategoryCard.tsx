@@ -23,7 +23,7 @@ export function CategoryCard({ category, label, seen, mastered, total, percent }
     <View
       style={[styles.card, { backgroundColor: c.soft }]}
       accessible
-      accessibilityLabel={`${label} : ${seen} mots vus sur ${total}, ${mastered} maîtrisés, ${percent} pour cent`}
+      accessibilityLabel={`${label} : ${seen} mots vus sur ${total}, ${mastered} maîtrisés, ${percent} pour cent`}
       testID={`category-${category}`}
     >
       <View style={styles.head}>

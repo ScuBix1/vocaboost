@@ -58,7 +58,7 @@ export default function TestScreen() {
       ) : (
         <Card testID="test-done">
           <Text style={styles.h3}>
-            ✅ Test de la semaine terminé : {status.record.correct}/{status.record.total}
+            ✅ Test de la semaine terminé : {status.record.correct}/{status.record.total}
           </Text>
           <ResultBadge passed={status.record.passed} />
           <Text style={styles.caption}>Prochain test disponible lundi</Text>
@@ -76,7 +76,7 @@ export default function TestScreen() {
             <Card
               key={`${r.weekId}-${r.finishedAt}`}
               contentStyle={styles.row}
-              accessibilityLabel={`${formatWeekLabel(r.weekId)}, terminé le ${formatDateFr(r.finishedAt)} : ${r.correct} sur ${r.total}, ${r.percent} pour cent, ${r.passed ? 'Réussi' : 'À retravailler'}`}
+              accessibilityLabel={`${formatWeekLabel(r.weekId)}, terminé le ${formatDateFr(r.finishedAt)} : ${r.correct} sur ${r.total}, ${r.percent} pour cent, ${r.passed ? 'Réussi' : 'À retravailler'}`}
             >
               <View style={[styles.medal, { backgroundColor: r.passed ? colors.successSoft : colors.dangerSoft }]}>
                 <Text style={styles.medalEmoji}>{r.passed ? '🏅' : '📖'}</Text>

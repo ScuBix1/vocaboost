@@ -47,7 +47,8 @@ const palette = {
   overlay: 'rgba(30,20,66,0.55)',
   cheek: '#FF8FA3',
   onPrimaryTrack: 'rgba(255,255,255,0.25)',
-  onPrimaryTile: 'rgba(255,255,255,0.16)',
+  // 10 % (et non 16 %) : texte blanc ≥ 4,5:1 sur la tuile (V2-04, ≈ 4,9:1).
+  onPrimaryTile: 'rgba(255,255,255,0.10)',
 } as const;
 
 export const colors = {

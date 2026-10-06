@@ -20,6 +20,7 @@ import { becameMastered, composeSession } from '@/domain/session';
 import { cardsOnDay } from '@/domain/streak';
 import { CATEGORY_LABELS, type Word } from '@/domain/types';
 import { useActionGuard } from '@/hooks/useActionGuard';
+import { useClientReady } from '@/hooks/useClientReady';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { speakEnglish, stopSpeaking } from '@/services/speech';
 import { useLearnerStore } from '@/store/useLearnerStore';
@@ -40,7 +41,13 @@ function goHome() {
   else router.replace('/');
 }
 
+/** Écran neutre tant que le tirage ne peut pas se faire (V2-07 / RT-03). */
 export default function SessionScreen() {
+  const ready = useClientReady();
+  return ready ? <SessionRun /> : <View style={styles.safe} testID="session-pending" />;
+}
+
+function SessionRun() {
   const [cards, setCards] = useState<Word[]>(drawSession);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -146,7 +153,7 @@ export default function SessionScreen() {
             <ProgressBar
               value={index / total}
               height={16}
-              accessibilityLabel={`Progression de la session : carte ${index + 1} sur ${total}`}
+              accessibilityLabel={`Progression de la session : carte ${index + 1} sur ${total}`}
             />
           </View>
           <Text style={styles.counter} accessible={false} testID="session-counter">
@@ -200,7 +207,7 @@ export default function SessionScreen() {
         {flipped ? (
           // RG-32 : boutons d'évaluation uniquement après retournement.
           <>
-            <Text style={styles.hint}>Sois honnête : l'app adapte tes révisions 😉</Text>
+            <Text style={styles.hint}>Sois honnête : l'app adapte tes révisions 😉</Text>
             <View style={[styles.evalRow, fontScale > LARGE_FONT_SCALE && styles.evalColumn]}>
               <Button
                 label="✓ Je savais"
@@ -226,7 +233,7 @@ export default function SessionScreen() {
           <>
             <View style={styles.hintRow}>
               <Vobi mood="hello" size={36} />
-              <Text style={[styles.hint, styles.hintInk]}>Tu le connais ? Pense à la traduction…</Text>
+              <Text style={[styles.hint, styles.hintInk]}>Tu le connais ? Pense à la traduction…</Text>
             </View>
             <Button label="Retourner" onPress={flip} disabled={guard.locked} testID="session-flip" />
           </>
@@ -266,6 +273,8 @@ const styles = StyleSheet.create({
   // « Je savais » est lu en premier mais affiché à droite (design §5.3).
   evalRow: { flexDirection: 'row-reverse', gap: spacing.md },
   evalColumn: { flexDirection: 'column' },
-  evalButton: { flex: 1 },
+  // Largeur selon le libellé (V2-03) : « ✗ Je ne savais pas » (contractuel) tient sur une ligne
+  // jusqu'à 360 pt, la place restante étant partagée à parts égales.
+  evalButton: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto' },
   emptyWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: spacing.lg },
 });

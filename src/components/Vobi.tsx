@@ -159,6 +159,8 @@ export function Vobi({ mood = 'hello', size = 96, sparkColor = colors.primary, a
       accessible={false}
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
+      // Web : react-native-web ignore accessibilityElementsHidden ; les emoji ne sont pas lus.
+      aria-hidden
       pointerEvents="none"
       testID={testID ?? 'vobi'}
     >

@@ -46,7 +46,7 @@ export default function ProgressScreen() {
         radius={24}
         faceStyle={styles.hero}
         accessible
-        accessibilityLabel={`Progression globale : ${stats.percent} pour cent de la banque maîtrisée. ${stats.seen} mots vus sur ${stats.total}, ${stats.mastered} mots maîtrisés sur ${stats.total}`}
+        accessibilityLabel={`Progression globale : ${stats.percent} pour cent de la banque maîtrisée. ${stats.seen} mots vus sur ${stats.total}, ${stats.mastered} mots maîtrisés sur ${stats.total}`}
       >
         <View style={styles.heroHead}>
           <View>
@@ -76,7 +76,7 @@ export default function ProgressScreen() {
 
       <Card
         contentStyle={styles.streakFace}
-        accessibilityLabel={`Série actuelle : ${streaks.current} ${dayUnit(streaks.current)}. Meilleure série : ${streaks.best} ${dayUnit(streaks.best)}`}
+        accessibilityLabel={`Série actuelle : ${streaks.current} ${dayUnit(streaks.current)}. Meilleure série : ${streaks.best} ${dayUnit(streaks.best)}`}
         testID="progress-streaks"
       >
         <View style={styles.streakHead}>
