@@ -26,20 +26,40 @@ import type { TestAnswer } from '@/domain/weeklyTest';
 export const STORAGE_KEY = 'vocaboost-store';
 export const STORAGE_VERSION = 1;
 
+/** Tentatives de lecture avant de considérer le stockage illisible (BUG-03). */
+const READ_ATTEMPTS = 3;
+const READ_RETRY_DELAY_MS = 100;
+
 /**
- * Accès AsyncStorage qui ne lève jamais : une lecture en échec équivaut à « aucune donnée »
- * (état vierge, RG-93) et une écriture en échec est ignorée. Couvre aussi le rendu statique
- * web (pas de `window` côté serveur).
+ * Garde-fou d'écriture (BUG-03) : aucune écriture tant qu'une lecture n'a pas réussi.
+ * - lecture réussie (même JSON corrompu, RG-93) → écritures autorisées ;
+ * - lecture en échec (erreur AsyncStorage) → l'app démarre vierge en mémoire, mais rien
+ *   n'est écrit : les données sur disque restent intactes pour le prochain lancement.
  */
-const safeAsyncStorage: StateStorage = {
+let persistenceEnabled = false;
+let lastReadFailed = false;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Accès AsyncStorage tolérant : couvre aussi le rendu statique web (pas de `window`). */
+const guardedAsyncStorage: StateStorage = {
   getItem: async (name) => {
-    try {
-      return await AsyncStorage.getItem(name);
-    } catch {
-      return null;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < READ_ATTEMPTS; attempt++) {
+      try {
+        const value = await AsyncStorage.getItem(name);
+        lastReadFailed = false;
+        return value;
+      } catch (error) {
+        lastError = error;
+        if (attempt < READ_ATTEMPTS - 1) await wait(READ_RETRY_DELAY_MS * attempt);
+      }
     }
+    lastReadFailed = true;
+    throw lastError;
   },
   setItem: async (name, value) => {
+    if (!persistenceEnabled) return;
     try {
       await AsyncStorage.setItem(name, value);
     } catch {
@@ -47,6 +67,7 @@ const safeAsyncStorage: StateStorage = {
     }
   },
   removeItem: async (name) => {
+    if (!persistenceEnabled) return;
     try {
       await AsyncStorage.removeItem(name);
     } catch {
@@ -60,8 +81,11 @@ export interface LearnerState extends PersistedData {
   hasHydrated: boolean;
   /** Enregistre immédiatement une évaluation de carte (RG-14). */
   evaluateCard: (wordId: string, knew: boolean, now?: Date) => void;
-  /** Termine le test : boîtes + historique + jour actif (RG-69, RG-71). */
-  completeTest: (answers: readonly TestAnswer[], now?: Date) => TestRecord | null;
+  /**
+   * Termine le test : boîtes + historique + jour actif (RG-69, RG-71).
+   * `startedAt` fixe la semaine ISO du test (décision PM post-QA, OBS-01) ; défaut : `now`.
+   */
+  completeTest: (answers: readonly TestAnswer[], now?: Date, startedAt?: Date) => TestRecord | null;
   setDailyGoal: (goal: DailyGoal) => void;
   /** Renvoie false si l'action est bloquée (dernier élément du groupe, RG-50). */
   toggleCategory: (category: CategoryId) => boolean;
@@ -91,8 +115,8 @@ export const useLearnerStore = create<LearnerState>()(
         set(applyCardEvaluation(pickData(get()), wordId, knew, now));
       },
 
-      completeTest: (answers, now = new Date()) => {
-        const { data, record } = applyTestCompletion(pickData(get()), answers, now);
+      completeTest: (answers, now = new Date(), startedAt = now) => {
+        const { data, record } = applyTestCompletion(pickData(get()), answers, now, startedAt);
         if (record) set(data);
         return record;
       },
@@ -124,14 +148,17 @@ export const useLearnerStore = create<LearnerState>()(
     {
       name: STORAGE_KEY,
       version: STORAGE_VERSION,
-      storage: createJSONStorage(() => safeAsyncStorage),
+      storage: createJSONStorage(() => guardedAsyncStorage),
       partialize: (state) => pickData(state),
       // Version future : repartir des champs reconnus plutôt que de planter.
       migrate: (persisted) => sanitizePersistedData(persisted),
       // Toute donnée lue est validée champ par champ (RG-93).
       merge: (persisted, current) => ({ ...current, ...sanitizePersistedData(persisted) }),
       onRehydrateStorage: () => () => {
-        // Appelé en cas de succès comme d'erreur (JSON illisible) : on démarre quoi qu'il arrive.
+        // Appelé en cas de succès comme d'erreur : on démarre quoi qu'il arrive (RG-93),
+        // mais on n'écrit que si la lecture a abouti (BUG-03).
+        // Si la lecture a réussi, ce setState réécrit l'état assaini (ex. JSON corrompu → état vierge).
+        persistenceEnabled = !lastReadFailed;
         useLearnerStore.setState({ hasHydrated: true });
       },
     },

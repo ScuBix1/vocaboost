@@ -19,21 +19,30 @@ import { useLearnerStore } from '@/store/useLearnerStore';
 import { useResultsStore } from '@/store/useResultsStore';
 import { colors, MIN_TOUCH, spacing, typography } from '@/theme/tokens';
 
-/** Tire un nouveau test si (et seulement si) il est disponible (RG-60, RG-67). */
-function drawTest(): TestQuestion[] {
-  const { progress, testHistory } = useLearnerStore.getState();
-  const now = new Date();
-  if (getTestStatus(WORDS, progress, testHistory, now).kind !== 'available') return [];
-  return generateTest(WORDS, progress, now, Math.random);
+interface DrawnTest {
+  questions: TestQuestion[];
+  /** Instant de démarrage : le test est rattaché à cette semaine ISO (décision PM post-QA, OBS-01). */
+  startedAt: Date;
 }
 
+/** Tire un nouveau test si (et seulement si) il est disponible (RG-60, RG-67). */
+function drawTest(): DrawnTest {
+  const { progress, testHistory } = useLearnerStore.getState();
+  const startedAt = new Date();
+  if (getTestStatus(WORDS, progress, testHistory, startedAt).kind !== 'available') {
+    return { questions: [], startedAt };
+  }
+  return { questions: generateTest(WORDS, progress, startedAt, Math.random), startedAt };
+}
+
+/** Abandon : toujours vers l'onglet Test, quel que soit le point d'entrée (BUG-04, design §4.7). */
 function backToTestTab() {
-  if (router.canGoBack()) router.back();
-  else router.replace('/test');
+  if (router.canDismiss()) router.dismissAll();
+  router.navigate('/test');
 }
 
 export default function TestRunScreen() {
-  const [questions] = useState<TestQuestion[]>(drawTest);
+  const [{ questions, startedAt }] = useState<DrawnTest>(drawTest);
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const answers = useRef<TestAnswer[]>([]);
@@ -90,7 +99,7 @@ export default function TestRunScreen() {
     if (finished.current) return;
     finished.current = true;
     const all = answers.current.slice(0, total);
-    const record = completeTest(all); // RG-69, RG-71 : appliqué en une fois.
+    const record = completeTest(all, new Date(), startedAt); // RG-69, RG-71 : appliqué en une fois.
     if (!record) {
       router.replace('/test');
       return;

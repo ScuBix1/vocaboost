@@ -65,7 +65,7 @@ Les écrans ne contiennent aucune règle métier : ils lisent le store et appell
 ## Vérifications
 
 - `npx tsc --noEmit` : OK, 0 erreur.
-- `npx jest` : 12 suites, 111 tests verts.
+- `npx jest` : 12 suites, 111 tests verts (après les corrections post-QA : 15 suites, 145 tests).
 - `npx expo export --platform web` : bundle et 15 routes statiques exportés (dossier `dist/` supprimé ensuite).
 
 ## Limites connues
@@ -75,3 +75,30 @@ Les écrans ne contiennent aucune règle métier : ils lisent le store et appell
 - **Vibration** au tap d'évaluation non implémentée, car elle est optionnelle et demande une permission Android.
 - **Web** non optimisé (hors périmètre) : la carte s'anime avec `rotateY` ; `accessibilityLanguage` n'a d'effet que sur iOS.
 - **Validation sur appareil** : Android / iOS en mode avion, redémarrage forcé et lecteur d'écran restent à faire par le QA. Les tests automatisés simulent le redémarrage par une réhydratation depuis AsyncStorage.
+
+## Corrections post-QA
+
+Source : `docs/05-rapport-qa.md`. Les 4 tests `test.failing` des fichiers `qa-*` sont devenus des `test` normaux et passent. Aucun test n'a été supprimé.
+
+| Bug | Correction | Fichiers | Tests |
+|---|---|---|---|
+| BUG-01 (majeur) — double tap sur « Retourner » | Retournement et évaluation non réentrants. Un verrou commun à l'écran (`useActionGuard`, 300 ms, aligné sur l'animation) est posé au retournement. Pendant ce verrou, « Je savais » / « Je ne savais pas » sont désactivés et tout tap est ignoré (vérification synchrone sur `Date.now()`). Le garde par index de carte est conservé. | `hooks/useActionGuard.ts`, `app/session.tsx` | `qa-flows` BUG-01 ; `flows.test.tsx` (boutons désactivés puis actifs) |
+| BUG-02 — double tap sur « Je savais » | Le même verrou est posé après chaque évaluation : un 2e tap ne retourne pas la carte suivante. | `app/session.tsx` | `qa-flows` BUG-02 |
+| BUG-03 — lecture en échec qui efface les données | Aucune écriture tant qu'une lecture n'a pas réussi (`persistenceEnabled`). La lecture est retentée jusqu'à 3 fois. Si elle échoue encore, l'app démarre vierge en mémoire **sans rien écrire** ; le disque reste intact pour le lancement suivant. Un JSON corrompu (lecture réussie, contenu illisible) est toujours remplacé par un état vierge (RG-93). | `store/useLearnerStore.ts` | `qa-store` BUG-03 ; `useLearnerStore.test.ts` (échecs répétés) |
+| BUG-04 — retour après abandon du test | L'abandon ferme les écrans empilés et ouvre l'onglet Test, quel que soit le point d'entrée. | `app/test-run.tsx` | `qa-flows` BUG-04 |
+| BUG-05 — bandeau de réinitialisation invisible | Le bandeau « Progression réinitialisée » est rendu hors du `ScrollView`, en haut de l'écran. | `app/settings.tsx` | `qa-flows` (bandeau) |
+| OBS-01 — décision PM | La semaine ISO est fixée au démarrage du test (`startedAt`) et réutilisée à la fin, pour le `weekId` et la règle « 1 test par semaine ». La date de fin et le jour actif restent ceux de la fin. La note a été ajoutée sous RG-60 dans `02-spec-pm.md`. | `domain/weeklyTest.ts`, `domain/learnerState.ts`, `store/useLearnerStore.ts`, `app/test-run.tsx` | `learnerState.test.ts` (OBS-01) |
+
+**Banque de mots** (la répartition 200 / 10 × 20 / 50-60-50-40 est inchangée, tests d'intégrité verts) :
+- `journey → trajet` a été remplacé par `sightseeing → tourisme` (B1, Voyage), pour lever l'ambiguïté avec `trip → voyage`.
+- `friendly → sympathique` a été remplacé par `polite → poli` (A2, Émotions), pour lever l'ambiguïté avec `kind → gentil`.
+- `storm` se traduit désormais par « tempête » au lieu de « orage ».
+- Deux exemples ont été rendus plus naturels : « Broccoli is my favourite vegetable. » et « She passed her maths exam easily. » (ce dernier supprime le mélange *grade* / *mark*).
+- Je n'ai pas touché aux mots transparents de niveau A1 (`train`, `hotel`…) ni à l'orthographe britannique : ce sont des choix assumés.
+
+**Tests** :
+- Avec `renderRouter`, les faux timers de Jest sont actifs. Les parcours qui enchaînent volontairement « Retourner » puis une évaluation avancent donc l'horloge de 320 ms entre deux taps (`waitGuard`).
+- Pour cette raison, 3 tests QA existants ont été adaptés sans changer ce qu'ils vérifient : « double tap sur Je savais », « Nouvelle session » et BUG-02, dont le 1er « Je savais » est délibéré.
+
+**Limite restante** : le verrou n'est pas posé à l'ouverture de la session. Un double tap sur « Commencer une session » peut donc encore retourner la 1re carte. Ce cas est sans effet sur les données, car l'évaluation reste verrouillée 300 ms après le retournement.
+

@@ -125,4 +125,28 @@ describe('Store persistant (RG-90 → RG-94)', () => {
     expect(state.dailyGoal).toBe(30);
     expect(state.filters.levels).toEqual(['A2', 'B1', 'B2']);
   });
+
+  it('BUG-03 : lecture impossible (échecs répétés) → démarrage vierge, rien n’est écrit sur le disque', async () => {
+    useLearnerStore.getState().evaluateCard('kitchen', true);
+    await flush();
+    const onDiskBefore = await AsyncStorage.getItem(STORAGE_KEY);
+    const ioError = new Error('I/O');
+    // Les 3 tentatives de lecture échouent (READ_ATTEMPTS).
+    jest
+      .spyOn(AsyncStorage, 'getItem')
+      .mockRejectedValueOnce(ioError)
+      .mockRejectedValueOnce(ioError)
+      .mockRejectedValueOnce(ioError);
+    useLearnerStore.setState({ hasHydrated: false });
+    await useLearnerStore.persist.rehydrate();
+    expect(useLearnerStore.getState().hasHydrated).toBe(true);
+    // Toute modification ultérieure reste en mémoire : les données sur disque sont intactes.
+    useLearnerStore.getState().resetProgress();
+    useLearnerStore.getState().evaluateCard('door', false);
+    await flush();
+    expect(await AsyncStorage.getItem(STORAGE_KEY)).toBe(onDiskBefore);
+    // Lancement suivant : la lecture réussit, les données d'origine sont retrouvées et l'écriture reprend.
+    await useLearnerStore.persist.rehydrate();
+    expect(useLearnerStore.getState().progress.kitchen.seenCount).toBe(1);
+  });
 });

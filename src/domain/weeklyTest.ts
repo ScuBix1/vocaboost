@@ -181,11 +181,18 @@ export function applyTestAnswers(progress: ProgressMap, answers: readonly TestAn
   return next;
 }
 
-/** Entrée d'historique d'un test terminé à `finishedAt` (RG-71). */
-export function createTestRecord(answers: readonly TestAnswer[], finishedAt: Date): TestRecord {
+/**
+ * Entrée d'historique d'un test terminé à `finishedAt` (RG-71), rattachée à la semaine ISO
+ * de son démarrage `startedAt` (décision PM post-QA, OBS-01).
+ */
+export function createTestRecord(
+  answers: readonly TestAnswer[],
+  finishedAt: Date,
+  startedAt: Date = finishedAt,
+): TestRecord {
   const score = scoreTest(answers.filter((a) => a.correct).length, answers.length);
   return {
-    weekId: getWeekId(finishedAt),
+    weekId: getWeekId(startedAt),
     finishedAt: finishedAt.toISOString(),
     total: score.total,
     correct: score.correct,

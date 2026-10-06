@@ -49,8 +49,17 @@ export default function SettingsScreen() {
     });
 
   return (
-    <Screen edges={['bottom']}>
-      <Notice message={toast} tone="success" onHide={hideToast} />
+    <Screen
+      edges={['bottom']}
+      // Bandeau hors du contenu défilant : toujours visible en haut de l'écran (BUG-05).
+      header={
+        toast ? (
+          <View style={styles.toast}>
+            <Notice message={toast} tone="success" onHide={hideToast} />
+          </View>
+        ) : null
+      }
+    >
 
       <View style={styles.section}>
         <SectionTitle>Objectif quotidien</SectionTitle>
@@ -143,6 +152,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  toast: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   section: { gap: spacing.md },
   caption: { ...typography.caption, color: colors.textMuted },
   body: { ...typography.body, color: colors.text },

@@ -1,7 +1,9 @@
 /**
  * Parcours d'écrans avec expo-router (routes réelles de src/app).
  */
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+
+import { ACTION_GUARD_MS } from '@/hooks/useActionGuard';
 
 import { WORDS } from '@/data/words';
 import { createInitialData } from '@/domain/learnerState';
@@ -18,6 +20,12 @@ import SessionResultScreen from '@/app/session-result';
 import SettingsScreen from '@/app/settings';
 import TestResultScreen from '@/app/test-result';
 import TestRunScreen from '@/app/test-run';
+
+/**
+ * Laisse s'écouler le verrou anti-double-tap (BUG-01/BUG-02) entre deux taps délibérés.
+ * renderRouter active les faux timers de Jest (Date.now compris) : on avance l'horloge.
+ */
+const waitGuard = () => act(() => jest.advanceTimersByTime(ACTION_GUARD_MS + 20));
 
 const routes = {
   _layout: RootLayout,
@@ -52,7 +60,9 @@ describe('Parcours Accueil → session → résultat (US-01, US-03)', () => {
       // Boutons d'évaluation absents avant le retournement.
       expect(screen.queryByTestId('session-known')).toBeNull();
       await fireEvent.press(screen.getByTestId('session-flip'));
+      await waitGuard();
       await fireEvent.press(screen.getByTestId(i <= 6 ? 'session-known' : 'session-unknown'));
+      await waitGuard();
     }
     await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
     expect(screen.getByTestId('result-score')).toHaveTextContent('6 / 10');
@@ -61,11 +71,26 @@ describe('Parcours Accueil → session → résultat (US-01, US-03)', () => {
     expect(Object.keys(useLearnerStore.getState().progress)).toHaveLength(10);
   });
 
+  it('BUG-01 : boutons d’évaluation désactivés pendant le retournement, actifs ensuite', async () => {
+    await renderRouter(routes, { initialUrl: '/session' });
+    await fireEvent.press(screen.getByTestId('session-flip'));
+    expect(screen.getByTestId('session-known')).toBeDisabled();
+    expect(screen.getByTestId('session-unknown')).toBeDisabled();
+    await fireEvent.press(screen.getByTestId('session-unknown'));
+    expect(useLearnerStore.getState().progress).toEqual({});
+    await waitGuard();
+    expect(screen.getByTestId('session-known')).toBeEnabled();
+    await fireEvent.press(screen.getByTestId('session-unknown'));
+    expect(Object.keys(useLearnerStore.getState().progress)).toHaveLength(1);
+  });
+
   it('AC-03.7 : quitter après 4 cartes conserve les 4 évaluations', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
     for (let i = 0; i < 4; i++) {
       await fireEvent.press(screen.getByTestId('session-flip'));
+      await waitGuard();
       await fireEvent.press(screen.getByTestId('session-known'));
+      await waitGuard();
     }
     await fireEvent.press(screen.getByTestId('session-flip'));
     await fireEvent.press(screen.getByTestId('session-quit'));

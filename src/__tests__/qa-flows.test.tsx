@@ -5,6 +5,7 @@ import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testi
 import { Alert } from 'react-native';
 
 import { WORDS } from '@/data/words';
+import { ACTION_GUARD_MS } from '@/hooks/useActionGuard';
 import { createInitialData } from '@/domain/learnerState';
 import { useLearnerStore } from '@/store/useLearnerStore';
 
@@ -33,6 +34,12 @@ const routes = {
   'test-result': TestResultScreen,
   settings: SettingsScreen,
 };
+
+/**
+ * Laisse s'écouler le verrou anti-double-tap (BUG-01/BUG-02) entre deux taps délibérés.
+ * renderRouter active les faux timers de Jest (Date.now compris) : on avance l'horloge.
+ */
+const waitGuard = () => act(() => jest.advanceTimersByTime(ACTION_GUARD_MS + 20));
 
 type AlertButton = { text?: string; style?: string; onPress?: () => void };
 
@@ -85,7 +92,7 @@ describe('QA — abandon du test (RG-67, AC-07.11)', () => {
   });
 
   // BUG-04 (mineur, design §1.2) : lancé depuis l'Accueil (« Passer le test »), l'abandon revient à l'Accueil.
-  test.failing('BUG-04 : abandon d’un test lancé depuis l’Accueil → retour à l’onglet Test', async () => {
+  test('BUG-04 : abandon d’un test lancé depuis l’Accueil → retour à l’onglet Test', async () => {
     seedSeen(10);
     await renderRouter(routes, { initialUrl: '/' });
     await fireEvent.press(screen.getByText('Passer le test'));
@@ -123,6 +130,7 @@ describe('QA — session', () => {
   it('double tap sur « Je savais » : une seule évaluation', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
     await fireEvent.press(screen.getByTestId('session-flip'));
+    await waitGuard(); // tap délibéré après la fin du verrou de retournement
     const known = screen.getByTestId('session-known');
     await fireEvent.press(known);
     await fireEvent.press(known);
@@ -135,7 +143,7 @@ describe('QA — session', () => {
   // « Je savais » / « Je ne savais pas ». Un double tap sur « Retourner » évalue la carte sans que
   // l'utilisateur ait lu le verso (reproduit sur le web avec Playwright : dblclick → +1 carte évaluée).
   // Ici : 2e tap immédiat (quelques ms) à l'emplacement de « Je savais ».
-  test.failing('BUG-01 : un tap sur « Je savais » arrivant juste après « Retourner » (double tap) est ignoré', async () => {
+  test('BUG-01 : un tap sur « Je savais » arrivant juste après « Retourner » (double tap) est ignoré', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
     await fireEvent.press(screen.getByTestId('session-flip'));
     await fireEvent.press(screen.getByTestId('session-known'));
@@ -144,12 +152,14 @@ describe('QA — session', () => {
 
   // BUG-02 (mineur) : double tap sur « Je savais » → le 2e tap tombe sur « Retourner » de la carte suivante,
   // qui est retournée immédiatement (traduction révélée avant que l'utilisateur ait cherché).
-  test.failing('BUG-02 : un tap sur « Retourner » arrivant juste après « Je savais » (double tap) est ignoré', async () => {
+  test('BUG-02 : un tap sur « Retourner » arrivant juste après « Je savais » (double tap) est ignoré', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
     await fireEvent.press(screen.getByTestId('session-flip'));
+    await waitGuard(); // « Je savais » délibéré (sinon bloqué par le correctif BUG-01)
     await fireEvent.press(screen.getByTestId('session-known'));
-    await fireEvent.press(screen.getByTestId('session-flip'));
+    await fireEvent.press(screen.getByTestId('session-flip')); // 2e tap immédiat du double tap
     expect(screen.queryByTestId('session-known')).toBeNull();
+    expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([1]);
   });
 
   it('quitter sans évaluer : aucune donnée modifiée (RG-34)', async () => {
@@ -166,7 +176,9 @@ describe('QA — session', () => {
     await renderRouter(routes, { initialUrl: '/session' });
     for (let i = 0; i < 10; i++) {
       await fireEvent.press(screen.getByTestId('session-flip'));
+      await waitGuard();
       await fireEvent.press(screen.getByTestId('session-known'));
+      await waitGuard();
     }
     await waitFor(() => expect(screen.getByText('Session terminée')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('result-new-session'));

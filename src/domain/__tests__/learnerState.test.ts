@@ -68,6 +68,22 @@ describe('Fin de test (RG-69, RG-71, RG-45)', () => {
     expect(second.data).toBe(first);
   });
 
+  it('OBS-01 (décision PM post-QA) : test commencé dimanche 23:58, terminé lundi 00:01 → rattaché à la semaine du démarrage', () => {
+    let data = createInitialData();
+    WORDS.slice(0, 10).forEach((w) => (data = applyCardEvaluation(data, w.id, true, new Date(2026, 9, 6))));
+    const sunday = new Date(2026, 9, 11, 23, 58);
+    const monday = new Date(2026, 9, 12, 0, 1);
+    const all = WORDS.slice(0, 10).map((w) => ({ wordId: w.id, correct: true }));
+    const { data: after, record } = applyTestCompletion(data, all, monday, sunday);
+    expect(record?.weekId).toBe('2026-W41');
+    expect(record?.finishedAt).toBe(monday.toISOString());
+    // La nouvelle semaine reste disponible ; le jour actif est celui de la fin.
+    expect(getTestStatus(WORDS, after.progress, after.testHistory, monday).kind).toBe('available');
+    expect(after.activeDays).toContain('2026-10-12');
+    // Un second test démarré dans la même semaine (W41) serait refusé.
+    expect(applyTestCompletion(after, all, monday, sunday).record).toBeNull();
+  });
+
   it('AC-07.11 : abandon (aucun appel à applyTestCompletion) → boîtes et historique inchangés, test disponible', () => {
     expect(getTestStatus(WORDS, base.progress, base.testHistory, NOW).kind).toBe('available');
   });

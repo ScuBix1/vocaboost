@@ -122,6 +122,7 @@
 
 ### 4.7 Test hebdomadaire
 - **RG-60** — **1 test terminé maximum par semaine ISO**. Disponible si aucun test n'a été terminé dans la semaine courante ET `mots vus ≥ 10`.
+  > *Décision PM post-QA (OBS-01)* : un test est rattaché à la semaine ISO de son **démarrage**. La semaine est fixée au début du test et réutilisée à la fin pour le `weekId` de l'historique (RG-71) et pour la règle « 1 test par semaine ». Exemple : un test commencé le dimanche à 23:58 et terminé le lundi à 00:01 compte pour la semaine du dimanche ; le test de la nouvelle semaine reste disponible. La date/heure de fin et le jour actif (RG-45) restent ceux de la fin.
 - **RG-61** — **Minimum requis** : 10 mots vus. Sinon, l'écran Test affiche « Étudie encore X mots pour débloquer le test de la semaine » (X = 10 − vus) et un bouton « Commencer une session ».
 - **RG-62** — **Nombre de questions** N = `min(20, mots vus)` (donc entre 10 et 20).
 - **RG-63** — **Sélection des mots** (sans doublon) :

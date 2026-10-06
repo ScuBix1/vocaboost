@@ -18,6 +18,7 @@ import { getWordProgress } from '@/domain/leitner';
 import { becameMastered, composeSession } from '@/domain/session';
 import { cardsOnDay } from '@/domain/streak';
 import { CATEGORY_LABELS, type Word } from '@/domain/types';
+import { useActionGuard } from '@/hooks/useActionGuard';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { speakEnglish, stopSpeaking } from '@/services/speech';
 import { useLearnerStore } from '@/store/useLearnerStore';
@@ -43,6 +44,9 @@ export default function SessionScreen() {
   const resetFilters = useLearnerStore((s) => s.resetFilters);
   const setLastSession = useResultsStore((s) => s.setLastSession);
   const reduceMotion = useReduceMotion();
+  // Verrou commun à « Retourner », à la carte et aux boutons d'évaluation (BUG-01, BUG-02).
+  const guard = useActionGuard();
+  const { lock } = guard;
 
   // Compteurs de la session en cours, et carte déjà évaluée (anti-double-tap, design §5.4).
   const known = useRef(0);
@@ -78,10 +82,16 @@ export default function SessionScreen() {
     return stopSpeaking;
   }, [index, total, slide]);
 
-  const flip = () => setFlipped(true);
+  // Révélation non réentrante : une seule fois par carte, jamais pendant le verrou.
+  const flip = () => {
+    if (flipped || guard.isLocked()) return;
+    setFlipped(true);
+    // Les boutons d'évaluation apparaissent désactivés pendant le verrou (BUG-01).
+    lock();
+  };
 
   const evaluate = (knew: boolean) => {
-    if (!flipped || !word || handledIndex.current === index) return;
+    if (!flipped || !word || guard.isLocked() || handledIndex.current === index) return;
     handledIndex.current = index;
 
     const boxBefore = getWordProgress(useLearnerStore.getState().progress, word.id).box;
@@ -100,6 +110,8 @@ export default function SessionScreen() {
       router.replace('/session-result');
       return;
     }
+    // Carte suivante : un tap résiduel (double tap sur « Je savais ») ne doit pas la retourner (BUG-02).
+    lock();
     setFlipped(false);
     setIndex(index + 1);
   };
@@ -182,6 +194,7 @@ export default function SessionScreen() {
               accessibilityLabel="Je savais"
               tone="success"
               onPress={() => evaluate(true)}
+              disabled={guard.locked}
               style={styles.evalButton}
               testID="session-known"
             />
@@ -190,6 +203,7 @@ export default function SessionScreen() {
               accessibilityLabel="Je ne savais pas"
               variant="danger"
               onPress={() => evaluate(false)}
+              disabled={guard.locked}
               style={styles.evalButton}
               testID="session-unknown"
             />

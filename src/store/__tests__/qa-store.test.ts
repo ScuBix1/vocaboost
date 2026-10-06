@@ -62,7 +62,7 @@ describe('QA — hydratation et migration', () => {
 
   // BUG-03 (mineur) : une erreur de LECTURE transitoire est traitée comme « aucune donnée » ;
   // l'état vierge est alors réécrit sur disque et écrase la progression réelle.
-  test.failing('BUG-03 : une lecture AsyncStorage en échec ne doit pas écraser les données stockées', async () => {
+  test('BUG-03 : une lecture AsyncStorage en échec ne doit pas écraser les données stockées', async () => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ state: savedState, version: 1 }));
     useLearnerStore.setState({ ...createInitialData(), hasHydrated: false });
     await flush();

@@ -64,18 +64,20 @@ export function applyCardEvaluation(
 
 /**
  * Fin d'un test (RG-60, RG-69, RG-71, RG-45) : boîtes mises à jour en une fois,
- * entrée d'historique ajoutée, jour marqué actif. L'objectif quotidien n'est pas touché.
- * Si un test a déjà été terminé cette semaine, l'état est renvoyé inchangé.
+ * entrée d'historique ajoutée, jour marqué actif (jour de fin). L'objectif quotidien n'est pas touché.
+ * Le test est rattaché à la semaine ISO de son démarrage `startedAt` (décision PM post-QA, OBS-01).
+ * Si un test est déjà enregistré pour cette semaine, l'état est renvoyé inchangé.
  */
 export function applyTestCompletion(
   data: PersistedData,
   answers: readonly TestAnswer[],
   now: Date,
+  startedAt: Date = now,
 ): { data: PersistedData; record: TestRecord | null } {
-  if (answers.length === 0 || findRecordForWeek(data.testHistory, now)) {
+  if (answers.length === 0 || findRecordForWeek(data.testHistory, startedAt)) {
     return { data, record: null };
   }
-  const record = createTestRecord(answers, now);
+  const record = createTestRecord(answers, now, startedAt);
   const next = withActiveDay(
     {
       ...data,
