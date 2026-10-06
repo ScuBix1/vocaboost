@@ -41,6 +41,19 @@
     "typescript": "~6.0.3"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.test.[jt]s?(x)"
+    ]
   }
 }

@@ -1,0 +1,106 @@
+/**
+ * Test (onglet, design §4.6) — US-07 (état du test), US-08 (historique).
+ */
+import { router } from 'expo-router';
+import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { ResultBadge } from '@/components/Badge';
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
+import { EmptyState } from '@/components/EmptyState';
+import { ProgressBar } from '@/components/ProgressBar';
+import { Screen, ScreenTitle, SectionTitle } from '@/components/Screen';
+import { formatDateFr, formatWeekLabel, getWeekId } from '@/domain/dates';
+import { plural } from '@/domain/format';
+import { sortHistory, TEST_MIN_SEEN } from '@/domain/weeklyTest';
+import { useTestStatus } from '@/hooks/useLearnerSelectors';
+import { useNow } from '@/hooks/useNow';
+import { useLearnerStore } from '@/store/useLearnerStore';
+import { colors, radius, spacing, typography } from '@/theme/tokens';
+
+export default function TestScreen() {
+  const now = useNow();
+  const status = useTestStatus(now);
+  const history = useLearnerStore((s) => s.testHistory);
+  const sorted = useMemo(() => sortHistory(history), [history]);
+
+  return (
+    <Screen edges={['top']}>
+      <ScreenTitle title="Test de la semaine" subtitle={formatWeekLabel(getWeekId(now))} />
+
+      {status.kind === 'locked' ? (
+        <View style={styles.locked} testID="test-locked">
+          <Text style={styles.lockedText}>
+            🔒 Étudie encore {status.remaining} {plural(status.remaining, 'mot')} pour débloquer le test de la semaine
+          </Text>
+          <ProgressBar value={status.seen / TEST_MIN_SEEN} accessibilityLabel="Mots vus pour débloquer le test" />
+          <Button label="Commencer une session" onPress={() => router.push('/session')} />
+        </View>
+      ) : status.kind === 'available' ? (
+        <Card testID="test-available">
+          <Text style={styles.h3}>✨ Ton test est prêt</Text>
+          <Text style={styles.body}>
+            {status.questionCount} questions à choix multiples sur les mots que tu as étudiés. Pas de limite de temps.
+          </Text>
+          <Text style={styles.caption}>Réussi à partir de 70 %. Un seul essai par semaine.</Text>
+          <Button label="Commencer le test" onPress={() => router.push('/test-run')} testID="test-start" />
+        </Card>
+      ) : (
+        <Card testID="test-done">
+          <Text style={styles.h3}>
+            ✅ Test de la semaine terminé : {status.record.correct}/{status.record.total}
+          </Text>
+          <ResultBadge passed={status.record.passed} />
+          <Text style={styles.caption}>Prochain test disponible lundi</Text>
+        </Card>
+      )}
+
+      <View style={styles.list}>
+        <SectionTitle>Historique</SectionTitle>
+        {sorted.length === 0 ? (
+          <Card>
+            <EmptyState emoji="🗓️" title="Aucun test pour l'instant" compact />
+          </Card>
+        ) : (
+          sorted.map((r) => (
+            <Card
+              key={`${r.weekId}-${r.finishedAt}`}
+              style={styles.row}
+              accessibilityLabel={`${formatWeekLabel(r.weekId)}, terminé le ${formatDateFr(r.finishedAt)} : ${r.correct} sur ${r.total}, ${r.percent} pour cent, ${r.passed ? 'Réussi' : 'À retravailler'}`}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.strong}>{formatWeekLabel(r.weekId)}</Text>
+                <Text style={styles.caption}>{formatDateFr(r.finishedAt)}</Text>
+              </View>
+              <View style={styles.rowRight}>
+                <Text style={styles.strong}>
+                  {r.correct}/{r.total} · {r.percent} %
+                </Text>
+                <ResultBadge passed={r.passed} />
+              </View>
+            </Card>
+          ))
+        )}
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  locked: {
+    backgroundColor: colors.warningSoft,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  lockedText: { ...typography.body, color: colors.warningText },
+  h3: { ...typography.h3, color: colors.text },
+  body: { ...typography.body, color: colors.text },
+  caption: { ...typography.caption, color: colors.textMuted },
+  strong: { ...typography.bodyStrong, color: colors.text },
+  list: { gap: spacing.md },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowLeft: { flexShrink: 1, gap: spacing.xs },
+  rowRight: { alignItems: 'flex-end', gap: spacing.xs },
+});
