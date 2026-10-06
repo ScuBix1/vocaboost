@@ -102,3 +102,21 @@ Source : `docs/05-rapport-qa.md`. Les 4 tests `test.failing` des fichiers `qa-*`
 
 **Limite restante** : le verrou n'est pas posé à l'ouverture de la session. Un double tap sur « Commencer une session » peut donc encore retourner la 1re carte. Ce cas est sans effet sur les données, car l'évaluation reste verrouillée 300 ms après le retournement.
 
+
+## Dépendances : avertissements npm et vulnérabilités
+
+`jest-expo@57` embarque encore Jest 29 (glob 7, inflight, jsdom 20…), d'où de nombreux paquets
+`deprecated` à l'installation. Le bloc `overrides` de `package.json` aligne toute la chaîne de test sur
+Jest 30 (`babel-jest`, `jest-environment-jsdom`, `jest-watch-typeahead`…), force `test-exclude@8`
+(glob 13) et `jsdom@27`, et passe `uuid` à 11.1.1 sous `xcode` (correctif de sécurité).
+`test-renderer` est épinglé en `~1.2.0` (react-reconciler 0.33, compatible React 19.2) pour supprimer
+le conflit de peer dependency de `@testing-library/react-native`.
+Résultat : `npm install` sans aucun avertissement, 66 → 48 vulnérabilités signalées.
+
+Les vulnérabilités restantes viennent de 4 paquets transitifs **sans version corrigée publiée**
+(ou incompatibles) : `braces` (Metro), `node-forge` (@expo/cli, signature de code), `sprintf-js`
+(outillage de couverture), `decode-uri-component` (expo-router ; la version corrigée est ESM-only).
+Toutes concernent l'outillage de build/dev ou des entrées non contrôlées par l'utilisateur, pas le
+bundle de l'app. **Ne pas lancer `npm audit fix --force`** : il propose de rétrograder vers Expo 44 /
+React Native 0.72, ce qui casserait le projet. Elles disparaîtront en suivant les mises à jour d'Expo
+(SDK 58+).
