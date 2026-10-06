@@ -552,3 +552,6 @@ Note pour le Développeur/QA : les `testID` existants sont conservés ; les test
 ## Validation
 - v1 : ✅ approuvée (PM/Client), implémentée.
 - **v2 : en attente de validation client** sur la base de `docs/design/maquettes.html`. L'implémentation ne commence qu'après validation.
+
+## Validation Client — v2
+✅ Direction artistique v2 **approuvée** par le client (maquettes `docs/design/`). Aucune des propositions hors spec n'est retenue pour l'instant (XP/niveaux/badges, combo, gel de série, mode sombre, icône/splash Vobi, Nunito, sons/haptique) : implémentation v2 sans nouvelle dépendance.
