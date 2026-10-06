@@ -1,32 +1,466 @@
-# Design — VocaBoost v1
+# Design — VocaBoost v2 (direction artistique)
 
-> Rédigé selon `.claude/agents/designer.md`. Entrées : `docs/01-brief-client.md`, `docs/02-spec-pm.md` (source de vérité : en cas d'écart, la spec PM prévaut). Destinataires : Développeur, QA.
-> Mode clair uniquement. Aucune librairie d'icônes : emoji ou texte seulement. Les références `RG-xx` / `AC-xx` renvoient à la spec PM.
+> Rédigé selon `.claude/agents/designer.md`. Entrées : `docs/01-brief-client.md`, `docs/02-spec-pm.md` (**source de vérité** : en cas d'écart, la spec PM prévaut), planche de références du client (captures App Store d'apps de langues). Destinataires : Client (validation), Développeur, QA.
+> Maquettes : `docs/design/maquettes.html` (aperçus : `docs/design/apercu-da.png`, `docs/design/apercu-ecrans.png`).
+> Mode clair uniquement. Aucune nouvelle dépendance imposée : tout ce qui suit se code avec React Native (`View`, `Text`, `Pressable`, `Animated`) et des emoji. Les options nécessitant une dépendance sont marquées **[P1-dep]** et listées en §9.
+
+## Historique
+
+| Version | Date | Changement | Pourquoi |
+|---|---|---|---|
+| v1 | 2026-10 | Design fonctionnel : indigo sobre, cartes blanches, ombres légères. Approuvé et implémenté. | Livrer le P0 vite et correctement. |
+| **v2** | 2026-10-06 | **Vraie direction artistique** : palette Grape/Sun, boutons « 3D », mascotte Vobi, couleurs par catégorie, célébrations, ton plus chaleureux. Mêmes écrans, mêmes règles, mêmes libellés contractuels. | Demande client : « une vraie DA inspirée des apps du marché (Duolingo et autres) ». La v1 était juste mais générique et peu motivante. |
+
+**Ce qui ne change pas** : flux de navigation (§1 v1 conservé), règles métier, libellés exigés par les critères d'acceptation (§8.4), accessibilité (cibles ≥ 44 pt, AA). **Ce qui change** : tokens visuels, composants (forme, profondeur, animation), hiérarchie de l'Accueil, du Résultat et du Progrès, micro-textes non contractuels.
 
 ---
 
-## 1. Flux d'écrans
+## 1. Analyse de marché (planche client)
 
-### 1.1 Arborescence expo-router
+Apps observées : Duolingo, Babbel, Memrise, Busuu, Mondly, Rosetta Stone, MosaLingua, Lingvist, Monday/Mondly.
 
-```
-app/
-  _layout.tsx            Stack racine (headers natifs, fond bg)
-  (tabs)/_layout.tsx     Tabs : Accueil | Apprendre | Progrès | Test
-  (tabs)/index.tsx       Accueil
-  (tabs)/learn.tsx       Apprendre
-  (tabs)/progress.tsx    Progrès
-  (tabs)/test.tsx        Test (état + historique)
-  session.tsx            Session de cartes      (Stack, gestureEnabled: false)
-  session-result.tsx     Résultat de session    (Stack, router.replace depuis session)
-  test-run.tsx           Déroulé du test        (Stack, gestureEnabled: false)
-  test-result.tsx        Résultat du test       (Stack, router.replace depuis test-run)
-  settings.tsx           Réglages               (Stack, header « Réglages »)
-```
+| Code du marché | Exemples | VocaBoost |
+|---|---|---|
+| Couleurs saturées, gros aplats sur fond clair | Duolingo (vert), Babbel (orange), Busuu (bleu), Memrise (jaune) | ✅ Retenu, avec un duo **violet Grape + jaune Sun** que les concurrents directs n'utilisent pas comme signature |
+| Boutons épais « 3D » (lèvre pleine sous le bouton) | Duolingo, Mondly | ✅ Retenu : tous les boutons, options QCM et cartes |
+| Mascotte expressive | Hibou Duolingo, perroquet Lingvist… | ✅ Retenu avec un personnage **original** : Vobi, une bulle de parole (pas d'animal) |
+| Série de jours / flamme | Duolingo, Busuu | ✅ Retenu : RG-46 existe déjà, on la rend visible (flamme + semaine) |
+| Feedback immédiat + bandeau coloré en bas | Duolingo, Babbel | ✅ Retenu pour le test (RG-66 : vert/rouge puis « Suivant ») |
+| Célébrations (confettis, écran de fin) | Duolingo, Memrise | ✅ Retenu : fin de session et test réussi |
+| Chemin de leçons, XP, ligues, badges | Duolingo, Memrise | ⚠️ Hors spec v1 (« gamification avancée » exclue) → **propositions** §9 uniquement |
+| Vies / cœurs qui bloquent | Duolingo | ❌ Rejeté : contraire à « 5-10 min sans frustration » |
+| Monnaie virtuelle, boutique, pubs | Duolingo, Mondly | ❌ Rejeté |
+| Culpabilisation (« tu vas perdre ta série ! ») | Duolingo | ❌ Rejeté : ton toujours positif |
+| Photos de personnes, vidéos | Babbel, Busuu, Memrise | ❌ Hors périmètre (contenu embarqué texte, hors ligne) |
 
-Les écrans empilés masquent la barre d'onglets. `session` et `test-run` désactivent le geste/bouton retour natif (Android : `BackHandler` → même comportement que « Quitter »).
+**Interdits de marque** : pas de hibou, pas de vert `#58CC02` (ni proche) comme couleur principale, pas d'orange Babbel, aucun nom/logo/illustration de ces apps.
 
-### 1.2 Diagramme
+---
+
+## 2. Direction artistique
+
+### 2.1 Concept
+**« Le coach de poche qui transforme 5 minutes par jour en mots anglais qui restent. »**
+VocaBoost est un petit booster quotidien : rapide, joyeux, honnête sur les progrès. Le mot est le héros ; la carte qui se retourne est l'objet central (épaisse, tactile).
+
+### 2.2 Personnalité
+| Trait | Se traduit par | On évite |
+|---|---|---|
+| ⚡ Énergique | Couleurs vives, boutons qui « s'enfoncent », micro-rebonds | Animations longues ou en boucle |
+| 🤝 Bienveillant | Erreur = « Pas grave », jamais de rouge plein écran, Vobi rassure | Culpabiliser, compter les échecs |
+| 🧠 Malin | Explique brièvement (« l'app adapte tes révisions ») | Jargon (« boîte de Leitner » n'apparaît jamais) |
+| 🎯 Concret | Chiffres clairs (x / objectif, %), une action principale par écran | Écrans de stats surchargés |
+
+### 2.3 Mascotte : Vobi
+**Concept** : une bulle de parole jaune Sun, ronde et pétillante, avec une petite étincelle violette (✦, le « boost ») au-dessus. Vobi « parle anglais à ta place quand les mots te manquent ». Pas d'animal, pas de bec, pas de plumes : aucun risque de confusion avec un concurrent.
+
+**Anatomie (grille 120 × 120, tout en `View`)** :
+1. Corps : `View` 100 × 80 en (10, 20), `borderRadius 38`, fond `sun`, lèvre basse 7 pt `sunLip` (`borderBottomWidth: 7`).
+2. Queue : carré 24 × 24 `sunLip` en (24, 84), `rotate: '45deg'`, rendu **avant** le corps (derrière).
+3. Étincelle : `Text` « ✦ » 26 pt `primary` en (90, 2), `rotate 14deg` (remplacée par l'accessoire quand il est sur la tête).
+4. Yeux : ovales 13 × 17 `ink` en x = 38 et 69, y = 44 ; reflet blanc 4,5 pt en (3, 3).
+   Variantes : **heureux** « ^^ » (arc : `View` 16 × 10, `borderWidth 4.5`, `borderBottomWidth 0`, `borderTopLeft/RightRadius 12`, fond transparent) ; **fermés** (barre 15 × 4,5) ; **regard haut** (reflet décalé).
+5. Sourcils (optionnels) : barres 16 × 4,5, y = 35, `rotate ±16deg` (déterminé : extrémités intérieures basses ; inquiet : inverse).
+6. Joues : ellipses 13 × 7 `#FF8FA3` opacité 0,8 en (24, 66) et (83, 66).
+7. Bouche (`overflow: 'hidden'`, fond `ink`, langue `flame` en bas) : `smile` 22 × 11 ; `grin` 30 × 17 ; `o` 12 × 14 ovale ; `flat` 16 × 7 ; `sleepy` 10 × 6.
+8. Accessoire : un emoji positionné en absolu.
+
+**Expressions** (prop `mood`) :
+
+| mood | Yeux / sourcils / bouche | Accessoire | Où |
+|---|---|---|---|
+| `hello` | ouverts / — / smile | 👋 à gauche | Accueil, premier lancement |
+| `correct` | heureux / — / grin | ✨ | Bandeau « Bonne réponse », Résultat de session |
+| `oops` | regard haut / inquiets / o, corps incliné −7° | 💧 | Bandeau « mauvaise réponse » |
+| `streak` | ouverts / déterminés / grin | 🔥 sur la tête (remplace ✦) | Carte série, objectif atteint |
+| `win` | heureux / — / grin | 🏆 + 🎉 | Résultat du test réussi |
+| `retry` | ouverts / déterminés / flat + bandeau `flame` sur le front | 💪 | Résultat du test « À retravailler » |
+| `empty` | fermés / — / sleepy, étincelle à 45 % | 💤 | Historique vide, Progrès à 0 |
+| `search` | regard haut / — / o | 🔎 | Aucun mot ne correspond aux filtres |
+
+**Plan v1 réaliste** : composant `components/Vobi.tsx` — `<Vobi mood="hello" size={96} />` dessiné sur la grille 120 et mis à l'échelle par `transform: [{ scale: size / 120 }]` dans un conteneur `size × size`. Toujours **décoratif** (`accessible={false}`, `importantForAccessibility="no-hide-descendants"`) : le texte voisin porte le sens. Animation : rebond d'apparition (§6). Tailles d'usage : 36 (indice en session), 56 (bandeaux), 72-96 (Accueil), 120-150 (résultats). *Plus tard* : version SVG/Lottie **[P1-dep]** sans changer le personnage.
+
+### 2.4 Ton rédactionnel
+- Tutoiement, phrases courtes (≤ 12 mots), un emoji maximum par phrase, en fin de phrase.
+- On célèbre l'effort (« Excellent rythme »), jamais on ne culpabilise (pas de « Échec », « Dommage », « Tu vas perdre »).
+- Les erreurs sont normales : « Pas tout à fait… », « Pas grave », « On y retourne ! ».
+- Les **libellés contractuels** (§8.4) restent mot pour mot ; on ajoute de la chaleur *autour* (titres, sous-titres, bulle de Vobi), pas à leur place.
+
+| Moment | v1 | v2 |
+|---|---|---|
+| Accueil, 0 mot vu | « Prêt pour tes 10 premiers mots ? » | Vobi : « Salut ! Prêt pour tes 10 premiers mots ? » |
+| Objectif en cours | « Encore {r} cartes pour atteindre ton objectif » | « Plus que {r} cartes ! » (tuile) / Vobi : « Encore {r} cartes et l'objectif du jour est dans la poche 💪 » |
+| Série vivante mais pas encore pratiqué aujourd'hui | « 🔥 3 » | « 🔥 3 jours ! Une carte aujourd'hui et la flamme continue. » |
+| Fin de session | « Session terminée » | « Session terminée ! » + « Excellent rythme, tes mots s'accrochent. » |
+| Mauvaise réponse | « ✗ La bonne réponse était : tomorrow » | Titre « Pas tout à fait… » + « ✗ La bonne réponse était : tomorrow » |
+| Test réussi | « Réussi » | Badge « 🏅 Réussi » + Vobi `win` |
+| Test raté | « À retravailler » | Badge « À retravailler » + « On y retourne ! Ces mots vont revenir plus souvent. » |
+| Historique vide | « Aucun test pour l'instant » | « Aucun test pour l'instant » + « Ton premier score s'affichera ici. » |
+| Retour du verso | — | « Sois honnête : l'app adapte tes révisions 😉 » |
+
+---
+
+## 3. Design system v2 (tokens)
+
+Le fichier `src/theme/tokens.ts` garde ses exports (`colors`, `spacing`, `radius`, `typography`, `shadows`, `MIN_TOUCH`, `MAX_FONT_MULTIPLIER`) et **conserve les anciennes clés** (valeurs mises à jour) pour limiter le refactor ; de nouvelles clés et exports (`categoryColors`, `depth`, `motion`) s'ajoutent.
+
+### 3.1 Couleurs
+
+Contrastes WCAG 2.1 calculés (texte normal ≥ 4,5:1 ; éléments graphiques ≥ 3:1).
+
+**Marque**
+
+| Token (nouveau) | Clé héritée | Hex | Usage | Contraste vérifié |
+|---|---|---|---|---|
+| `primary` | `primary` | `#6B3CF5` | Grape : bouton principal, onglet actif, liens, barre de session, traduction FR | blanc dessus 5,85 ; sur blanc 5,85 |
+| `primaryLip` | `primaryPressed` | `#4B22C2` | Lèvre 3D du primaire, état pressé | blanc dessus 9,10 |
+| `primarySoft` | `primarySoft` | `#EFE9FF` | Fond chip sélectionnée, bouton 🔊, encart exemple, onglet actif | — |
+| `primaryInk` | — | `#3D1A9E` | Texte sur `primarySoft` (badges niveau) | 9,66 sur `primarySoft` |
+| `sun` | — | `#FFC83D` | Jaune Sun : Vobi, bouton principal **sur fond Grape**, barre sur fond Grape | `ink` dessus 11,0 |
+| `sunLip` | — | `#E0A21A` | Lèvre du bouton Sun, queue/lèvre de Vobi | décoratif |
+| `sunSoft` | `warningSoft` | `#FFF4D6` | Carte « Test de la semaine », tuile « mots maîtrisés », état verrouillé | — |
+| `sunInk` | `warningText` | `#6B4500` | Texte sur `sunSoft` | 7,74 sur `sunSoft` |
+| `flame` | — | `#FF6B4A` | Série : pastilles de jours, bandeau de Vobi `retry`, confettis | décoratif (jamais du texte) |
+| `flameSoft` | — | `#FFF0EB` | Fond chip série, jours actifs | — |
+| `flameInk` | `warning` | `#B83A1E` | Chiffre de la série, texte sur `flameSoft` | 5,73 sur blanc ; 5,17 sur `flameSoft` |
+
+**Feedback**
+
+| Token | Clé héritée | Hex | Usage | Contraste |
+|---|---|---|---|---|
+| `success` | `success` | `#0B7F5E` | Bouton « Je savais », « Suivant » après bonne réponse, bordure option correcte | blanc dessus 4,99 |
+| `successLip` | `successPressed` | `#075C44` | Lèvre / pressé | — |
+| `successBright` | — | `#1FC496` | Remplissage anneau/barres « maîtrisé », confettis (graphique uniquement) | décoratif |
+| `successSoft` | `successSoft` | `#E3F8EF` | Fond option correcte, bandeau bonne réponse, tuile score | — |
+| `successInk` | `successText` | `#0B6E52` | Texte sur `successSoft` | 5,63 |
+| `danger` | `danger` | `#D9364A` | Bordure option incorrecte, bouton danger, texte « ✗ Je ne savais pas » sur blanc | blanc dessus 4,59 ; sur blanc 4,59 |
+| `dangerLip` | — | `#A8202F` | Lèvre du bouton danger | — |
+| `dangerSoft` | `dangerSoft` | `#FFE8EA` | Fond option incorrecte, bandeau mauvaise réponse | — |
+| `dangerInk` | `dangerText` | `#9E1B30` | Texte sur `dangerSoft` | 6,78 |
+
+**Neutres**
+
+| Token | Clé héritée | Hex | Usage | Contraste |
+|---|---|---|---|---|
+| `bg` | `bg` | `#F7F5FF` | Fond des écrans (lavande très clair) | — |
+| `surface` | `surface` | `#FFFFFF` | Cartes, boutons secondaires, barre d'onglets | — |
+| `surfaceAlt` | `surfaceAlt` | `#EFEBFA` | Pistes de barres/anneaux, jours inactifs | — |
+| `border` | `border` | `#E3DEF5` | Bordure 2 pt + lèvre des cartes/boutons blancs (décoratif) | décoratif |
+| `borderStrong` | `borderStrong` | `#8F88AD` | Contour d'élément interactif quand il n'a pas de texte (ex. case cochable) | 3,34 sur blanc |
+| `ink` | `text` | `#1E1442` | Texte principal, yeux de Vobi | 17,0 sur blanc ; 15,8 sur `bg` |
+| `inkMuted` | `textMuted` | `#5B5577` | Texte secondaire, légendes | 6,98 sur blanc ; 6,46 sur `bg` ; 5,96 sur `surfaceAlt` |
+| `textOnColor` | `textOnColor` | `#FFFFFF` | Texte sur primary/success/danger | voir ci-dessus |
+| `disabledBg` | `disabledBg` | `#ECE9F5` | Fond bouton désactivé | — |
+| `disabledLip` | — | `#D9D4EA` | Lèvre bouton désactivé | — |
+| `disabledText` | `disabledText` | `#6E6890` | Texte désactivé | 4,34 (exempté AA : inactif, reste lisible) |
+| `overlay` | `overlay` | `rgba(30,20,66,0.55)` | Fond derrière une modale custom | — |
+| `cheek` | — | `#FF8FA3` | Joues de Vobi | décoratif |
+
+**Couleurs par catégorie** (`categoryColors`, clé = identifiant de catégorie du code) : `base` = barres, pastilles (≥ 3:1 sur blanc) ; `soft` = fond de carte ; `ink` = texte sur `soft` (≥ 6,9:1).
+
+| Catégorie (RG-04) | Emoji | `base` | `soft` | `ink` | ink/soft | base/blanc |
+|---|---|---|---|---|---|---|
+| Maison | 🏠 | `#E5620F` | `#FFEEDD` | `#8A3A00` | 6,90 | 3,45 |
+| Nourriture | 🍎 | `#E8384F` | `#FFE6EA` | `#8C1426` | 7,92 | 4,11 |
+| Voyage | ✈️ | `#1C8CEB` | `#E2F1FF` | `#0A4C87` | 7,62 | 3,50 |
+| Travail | 💼 | `#4C5BD4` | `#E7E9FF` | `#28308A` | 9,31 | 5,59 |
+| École | 🎒 | `#B97F00` | `#FFF3D1` | `#6E4A00` | 7,19 | 3,44 |
+| Corps & santé | 🩺 | `#E0458F` | `#FFE6F2` | `#8A1752` | 7,68 | 3,88 |
+| Nature & animaux | 🌿 | `#1E9E57` | `#DFF6E8` | `#0C5B30` | 7,24 | 3,45 |
+| Émotions & personnalité | 💜 | `#9B4DE8` | `#F3E8FF` | `#5A1E9A` | 8,53 | 4,54 |
+| Temps & calendrier | ⏰ | `#0E9AA7` | `#DDF6F7` | `#065A62` | 7,03 | 3,39 |
+| Verbes courants | ⚡ | `#6E9A0E` | `#EEF6D8` | `#3D5A00` | 7,07 | 3,34 |
+
+Règles couleur :
+- La couleur n'est **jamais** le seul signal : ✓ / ✗, textes et libellés d'accessibilité accompagnent toujours vert/rouge ; le % est toujours écrit à côté d'une barre.
+- Le **niveau** (A1→B2) n'a pas de couleur propre (badge `primarySoft`/`primaryInk`) pour ne pas concurrencer les catégories.
+- Le rouge `danger` n'occupe jamais un écran entier : bandeau bas uniquement.
+
+### 3.2 Typographie
+
+**v1 de la v2 : police système** (San Francisco / Roboto), graisses 800-900 pour titres et mots. **Option [P1-dep] : Nunito** (ronde, très lisible, gratuite ; `expo-font` + `@expo-google-fonts/nunito`, poids 600/700/800/900) — c'est la police des maquettes ; à valider par le PM avant installation. Les tailles ci-dessous valent pour les deux.
+
+| Token | Taille / interligne | Poids | Usage |
+|---|---|---|---|
+| `wordXL` (ex-`display`) | 44 / 52 | 900 | Mot anglais au recto de la Flashcard |
+| `score` | 56 / 60 | 900 | Score de fin (« 8 / 10 » si seul, « 16 / 20 ») |
+| `wordL` | 38 / 44 | 900 | Mot de la question QCM ; traduction FR au verso (34/40) |
+| `h1` | 28 / 34 | 900 | Titre d'écran |
+| `h2` | 21 / 27 | 900 | Titre de section, titre de bandeau feedback |
+| `h3` | 17 / 22 | 900 | Titre de carte |
+| `button` | 17 / 22 | 900 | Libellé de bouton (casse normale, pas de majuscules) |
+| `body` | 15 / 22 | 600 | Texte courant, phrase d'exemple (italique) |
+| `bodyStrong` | 15 / 22 | 800 | Valeurs inline, options QCM (17/22 800) |
+| `caption` | 13 / 18 | 700 | Légendes, « Carte 3 / 10 », dates |
+| `overline` | 12 / 16 | 900, `letterSpacing 0.8`, MAJUSCULES | Libellés de rubrique (« OBJECTIF DU JOUR », « TRADUCTION ») |
+| `stat` | 30 / 36 | 900 | Valeurs de tuiles |
+
+`allowFontScaling` partout ; `maxFontSizeMultiplier = 1.6` sur `wordXL`, `wordL`, `score`, `stat`. Mot > 14 caractères : `wordXL` → `h1`+ (32/38).
+
+### 3.3 Espacements, rayons, profondeur
+
+**Espacements** (inchangés, base 4) : `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32 · xxxl 48`. Marge écran 16 ; entre blocs 14-16 ; padding carte 14-16 ; Flashcard 18-24.
+
+**Rayons (plus généreux)** :
+
+| Token | v1 | v2 | Usage |
+|---|---|---|---|
+| `sm` | 8 | 10 | Badges, pastille lettre QCM |
+| `md` | 12 | 16 | Boutons, chips carrées, encart exemple |
+| `lg` | 16 | 22 | Cartes, tuiles, options QCM (18) |
+| `xl` | 24 | 30 | Flashcard, bandeau feedback (28 en haut seulement), hero Accueil (26) |
+| `pill` | 999 | 999 | Chips de filtre, barres, chip série |
+
+**Profondeur « 3D »** (`depth`) — remplace les ombres floues : une **lèvre pleine** sous l'élément, de la couleur `*Lip` (ou `border` pour les éléments blancs).
+
+| Token | Valeur | Usage |
+|---|---|---|
+| `depth.sm` | 3 | Chips, bouton icône, bouton 🔊 |
+| `depth.md` | 4 | Boutons, options QCM, cartes |
+| `depth.lg` | 6 | Flashcard, hero Accueil (5) |
+
+Implémentation RN (sans lib) : conteneur `Pressable` dont le fond = couleur de lèvre et `paddingBottom = depth` ; la face (`View`) a la couleur principale et le même rayon. **Pressé** : la face prend `transform: [{ translateY: depth }]` et le `paddingBottom` passe à 0 (ou on garde le padding et on translate : visuellement la lèvre disparaît). Les éléments blancs ont en plus une bordure 2 pt `border`.
+`shadows.md` (ombre floue) n'est conservée que pour les éléments flottants : bandeau feedback, toast.
+
+### 3.4 Iconographie emoji
+
+Un emoji = un sens, partout le même. Décoratifs (`accessible={false}`) dès qu'un texte les accompagne.
+
+| Sens | Emoji | Sens | Emoji |
+|---|---|---|---|
+| Accueil (onglet) | 🏠 | Série / jour actif | 🔥 |
+| Apprendre (onglet) | 📚 | Meilleure série | 🏆 |
+| Progrès (onglet) | 📈 | Objectif atteint | 🎯 |
+| Test (onglet) | 📝 | Mots vus | 👀 |
+| Réglages | ⚙️ | Mots maîtrisés | ✅ (Progrès) / ⭐ (nouveaux maîtrisés en session) |
+| Écouter | 🔊 | Test disponible | ✨ |
+| Test verrouillé | 🔒 | Test réussi | 🏅 |
+| Filtres | 🎛️ | Données locales | 📱 |
+| Retourner (indice) | 👆 | Global (Progrès) | 🚀 |
+| Catégories | voir §3.1 | Langue de la question | 🇬🇧 Anglais / 🇫🇷 Français |
+
+---
+
+## 4. Composants
+
+Les noms de fichiers actuels (`src/components/*`) sont conservés ; leurs props existantes restent compatibles, les nouveautés sont optionnelles.
+
+### 4.1 Button (3D)
+Props v1 + `variant: 'primary' | 'secondary' | 'success' | 'danger' | 'softDanger' | 'sun'` (`tone="success"` reste accepté = `success`), `size: 'sm' (44) | 'md' (48) | 'lg' (56)`.
+
+| Variante | Face | Lèvre | Texte | Bordure | Usage |
+|---|---|---|---|---|---|
+| primary | `primary` | `primaryLip` | blanc | — | Action principale |
+| sun | `sun` | `sunLip` | `ink` | — | Action principale **posée sur un fond Grape** (hero Accueil) |
+| secondary | `surface` | `border` | `primary` | 2 `border` | Action secondaire (« Accueil », « Passer le test ») |
+| success | `success` | `successLip` | blanc | — | « ✓ Je savais », « Suivant » après bonne réponse |
+| softDanger | `surface` | `border` | `danger` | 2 `border` | « ✗ Je ne savais pas » (pas de rouge plein pour ne pas punir) |
+| danger | `danger` | `dangerLip` | blanc | — | « Suivant » après erreur, « Réinitialiser ma progression » |
+| désactivé | `disabledBg` | `disabledLip` | `disabledText` | — | Aucun retour au toucher |
+
+Rayon 16 (14 en `md`/`sm`), pleine largeur par défaut pour les actions d'écran. Pressé : translateY = 4 en 60 ms, relâché : retour ressort 120 ms (§6). `loading`, anti-double-tap et accessibilité inchangés (v1).
+
+### 4.2 Card
+Fond `surface`, rayon 22, bordure 2 `border`, lèvre 4 `border`. Variantes de ton : `tone?: 'default' | 'sun' | 'success' | 'primary'` (fond `sunSoft` + bordure/lèvre `#F5DE9C` ; `successSoft` ; `primary` plein avec texte blanc pour les « hero »). Pressable : la face s'enfonce de 2 pt.
+
+### 4.3 Flashcard
+Mêmes props et comportements que v1 (retournement **à sens unique**, annonces, TTS P2). Nouveau look :
+- Carte `surface`, rayon 30, bordure 2 `border`, lèvre 6 `border`, `flex: 1` (occupe l'espace entre header et actions).
+- En haut : chip catégorie (fond `categoryColors[c].soft`, texte `ink` de la catégorie, emoji + nom, rayon 12) à gauche ; badge niveau à droite ; dessous `caption` « Carte {n} / {N} ».
+- **Recto** : mot EN `wordXL` centré ; bouton 🔊 rond 56 (`primarySoft`, lèvre 4 `#D9CCFF`) dessous (P2) ; en bas « 👆 Touche la carte pour la retourner » (`caption` 800 `inkMuted`).
+- **Verso** (bloc centré verticalement) : mot EN 30/36 900 + 🔊 44 ; séparateur pointillé 2 pt `border` ; `overline` « TRADUCTION » + traduction FR 34/40 900 `primary` ; `overline` « EXEMPLE » + encart `primarySoft` rayon 18 : phrase en italique `body` 16/23 + 🔊 phrase (fond blanc).
+
+### 4.4 ProgressBar
+Hauteur 16 (session/test) ou 10 (listes). Piste `surfaceAlt` (ou `rgba(255,255,255,0.25)` sur fond Grape), remplissage `primary` | `successBright` | `sun` | couleur de catégorie, rayon pill. Reflet : bande 4 pt `rgba(255,255,255,0.35)` à 4 pt du haut, inset 8 (hauteur 16 seulement). Valeur minimale visible 6 % de largeur si > 0. Accessibilité v1 inchangée.
+
+### 4.5 ProgressRing (nouveau, sans SVG)
+Props : `value` (0-1, borné), `size` (64 par défaut), `thickness` (9), `color` (`primary` ; `successBright` si atteint), `children` (texte central), `accessibilityLabel`.
+Technique « deux demi-disques » en `View` : cercle piste `surfaceAlt` ; deux moitiés masquées (`overflow: 'hidden'`, largeur `size/2`) contenant chacune un demi-disque coloré tourné de `min(value, 0.5) × 360°` puis `max(value − 0.5, 0) × 360°` ; disque blanc central de `size − 2 × thickness`. Valeur ≥ 1 → anneau plein + `successBright`. `accessibilityRole="progressbar"`. *Si `react-native-svg` est validé [P1-dep], remplacer par un `Circle` + `strokeDasharray`.*
+Usage : objectif du jour (Accueil, Résultat de session). Centre : « {x} » `h3` 900 + « / {objectif} » `caption`.
+
+### 4.6 StreakChip et WeekStrip (nouveaux)
+- **StreakChip** (header Accueil) : pill 40, fond `flameSoft`, bordure 2 `#FFD9CC`, « 🔥 {série} » `h3` `flameInk`. État **éteint** (série = 0) : fond `surfaceAlt`, flamme en niveaux de gris (opacité 0,6), chiffre `inkMuted`. `accessibilityLabel="Série actuelle : {n} jour(s)"`.
+- **WeekStrip** : 7 pastilles L M M J V S D de la **semaine ISO courante** (lundi → dimanche) ; jour actif (RG-45, déjà stocké RG-48) = pastille `flame` (Accueil, 16 pt) ou cercle `flameSoft` + bordure `flame` + 🔥 (Progrès, 28 pt) ; aujourd'hui = contour pointillé ; jour futur/inactif = `surfaceAlt`. Pur affichage, aucune règle nouvelle. Label : « Cette semaine : {k} jours actifs ».
+
+### 4.7 StatTile
+Fond coloré doux (`successSoft`, `sunSoft`, `primarySoft`) ou blanc, rayon 20, sans bordure quand colorée. Valeur `stat` dans l'`ink` correspondant (`successInk`, `sunInk`…), légende `caption` même couleur. Props v1 + `tone: 'default' | 'success' | 'sun' | 'flame' | 'primary'`.
+
+### 4.8 CategoryCard (nouveau, Progrès)
+Fond `soft`, rayon 20, padding 12. Ligne 1 : pastille emoji blanche 34 (rayon 12) + nom (`h3` 14/17, `ink` catégorie, `flex: 1`, retour à la ligne autorisé) + « {pct} % » (19/24 900, `nowrap`). Ligne 2 : barre 10 (piste blanche, remplissage `base`, valeur maîtrisés/20). Lignes 3-4 : `caption` 12/16 800 « {vus}/20 vus » et « {maîtrisés}/20 maîtrisés ». Grille 2 colonnes, gap 10 ; 1 colonne si police agrandie (> 1,3). Label v1 inchangé.
+
+### 4.9 Chip de filtre
+Hauteur 44, pill, bordure 2, lèvre 3. Non sélectionnée : `surface` / `border` / texte `ink`. Sélectionnée : `primarySoft` / bordure + lèvre `primary` / texte `primaryInk`, préfixe « ✓ ». Catégories : emoji de la catégorie avant le nom (« ✓ ✈️ Voyage »). Règle RG-50 et texte d'aide inchangés.
+
+### 4.10 OptionButton (QCM)
+Min 60, rayon 18, bordure 2, lèvre 4. Pastille lettre 32 × 32 (A, B, C, D) rayon 10 à gauche ; libellé 17/22 800.
+
+| État | Fond | Bordure + lèvre | Texte | Pastille | Marqueur |
+|---|---|---|---|---|---|
+| idle | `surface` | `border` | `ink` | contour `border`, lettre `inkMuted` | — |
+| pressé | `primarySoft` | `primary` | `ink` | — | face enfoncée |
+| correct | `successSoft` | `success` | `successInk` | pleine `success`, lettre blanche | « ✓ » |
+| incorrect | `dangerSoft` | `danger` | `dangerInk` | pleine `danger`, lettre blanche | « ✗ » |
+| disabled | `surface` | `border`, lèvre 2 | `inkMuted`, opacité 0,75 | contour | — |
+
+Règles et libellés d'accessibilité v1 inchangés (la lettre n'est pas lue : label « Option {i} : {label} »).
+
+### 4.11 FeedbackSheet (nouveau, test)
+Bandeau fixé en bas (remplace la zone de 76 pt v1), rayon 28 en haut, padding 16/18 + inset bas. Glisse depuis le bas (§6).
+- Bonne réponse : fond `successSoft` ; Vobi `correct` 56 ; titre `h2` `successInk` « ✓ Bonne réponse ! » ; sous-titre `caption` « {mot EN} = {mot FR} » ; bouton `success` « Suivant » / « Voir le résultat ».
+- Mauvaise réponse : fond `dangerSoft` ; Vobi `oops` 56 ; titre `h2` `dangerInk` « Pas tout à fait… » ; ligne `bodyStrong` `dangerInk` « ✗ La bonne réponse était : {réponse} » ; bouton `danger` « Suivant » / « Voir le résultat ».
+Annonce lecteur d'écran v1 inchangée (la phrase « ✓ Bonne réponse ! » / « La bonne réponse était : … »).
+
+### 4.12 Confetti (nouveau)
+`components/Confetti.tsx` : 24 `Animated.View` (rectangles 10 × 16 rayon 3 et ronds 11), couleurs tirées de `primary`, `sun`, `flame`, `successBright`, `#1C8CEB`, `#E0458F`. Positions x aléatoires, départ y −20, chute jusqu'à 45 % de la hauteur, rotation 1-3 tours, durée 1 400-1 800 ms, `Easing.out(Easing.quad)`, fondu sur les 300 dernières ms, une seule fois, `useNativeDriver: true`, `pointerEvents="none"`, derrière le contenu. **Réduire les animations** : 10 confettis immobiles déjà posés (aucun mouvement). Non lu par les lecteurs d'écran.
+
+### 4.13 Autres
+- **Badge** : rayon 10, `caption` 900, padding 4/10 ; variantes `level` (`primarySoft`/`primaryInk`), `success` (« Réussi »), `danger` (« À retravailler »), `big` (16 pt, padding 8/14).
+- **EmptyState** : Vobi (`empty` ou `search`, 96) à la place de l'emoji 48 ; titre `h3`, message `body` `inkMuted`, action selon v1.
+- **SegmentedControl** (objectif 10/20/30) : piste `surfaceAlt` rayon 16 ; segment actif = face `primary` + lèvre `primaryLip`, texte blanc 900 ; inactif texte `ink`.
+- **IconButton** (⚙️) : 44 × 44, rayon 14, blanc, bordure + lèvre `border`.
+- **ConfirmDialog** : `Alert.alert` natif (inchangé).
+- **Toast** : pill `ink` texte blanc, ou `successSoft`/`successInk` « Progression réinitialisée », `shadows.md`.
+
+---
+
+## 5. Écrans
+
+Conventions v1 conservées (pluriels, chargement neutre avant réhydratation, recalcul au focus). Les maquettes `docs/design/maquettes.html` font foi pour les proportions.
+
+### 5.0 Barre d'onglets
+Fond `surface`, bordure haute 2 `border`. Onglets 🏠 Accueil · 📚 Apprendre · 📈 Progrès · 📝 Test. Actif : pastille `primarySoft` rayon 16 derrière emoji + libellé, texte `primary` 800 ; inactif : `inkMuted`, emoji opacité 0,75. Pastille `flame` 9 pt (contour blanc 2) sur 📝 quand le test est **disponible**. À l'appui : emoji rebond 1 → 1,15 → 1 (180 ms).
+
+### 5.1 Accueil
+**But** : 1 tap pour lancer (AC-01.1), l'essentiel d'un coup d'œil (AC-04.1).
+1. **En-tête** (48) : logotype texte « voca**boost** » (`ink` + `primary`, 24/900) ; à droite StreakChip + IconButton ⚙️ (« Réglages »).
+2. **Hero** (Card `primary`, rayon 26, lèvre 5 `primaryLip`) : Vobi 94 `hello` (ou `streak` si objectif atteint) + bulle blanche (rayon 18, coin bas-gauche 6) contenant le message du jour ; bouton **sun** `lg` « **Commencer une session** » pleine largeur ; si filtre actif (RG-53) : ligne `caption` blanche « 🎛️ Filtres : {résumé} » + lien souligné « Modifier » (→ Réglages).
+   Message de Vobi (priorité décroissante) :
+   - 0 mot vu : « Salut ! Prêt pour tes 10 premiers mots ? »
+   - objectif atteint : « Objectif atteint ✅ Chaque carte en plus compte ! »
+   - aucune carte aujourd'hui et série > 0 : « 🔥 {s} jours ! Une carte aujourd'hui et la flamme continue. »
+   - sinon : « Encore {r} cartes et l'objectif du jour est dans la poche 💪 »
+3. **Deux tuiles** (gap 12) :
+   - « OBJECTIF DU JOUR » : ProgressRing 64 « {x} / {objectif} » + texte « Plus que **{r} cartes** ! » ou « Objectif atteint ✅ » (`successInk`). Dépassement : « 15 / 10 », anneau plein.
+   - « SÉRIE » : 🔥 30 + « {s} » 30/900 `flameInk` + « jours de suite » / « jour de suite » ; WeekStrip compacte (pastilles 16). Série 0 : flamme grise, « 0 jour », texte « Lance ta série aujourd'hui ».
+4. **Carte « mots maîtrisés »** (pressable → Progrès) : pastille 🎯 `successSoft` 44 ; « {pct} % maîtrisés » `h3` ; « {maîtrisés} / 200 » `caption` ; barre 10 `successBright` ; chevron « › ».
+5. **Carte « Test de la semaine »** (pressable → onglet Test), selon état :
+   - verrouillé : Card `default`, « 🔒 Étudie encore {X} mots pour débloquer le test de la semaine » + barre `sun` vus/10 ;
+   - disponible : Card `sun`, « ✨ Ton test de la semaine est disponible », `caption` `sunInk` « {N} questions · pas de chrono · 1 essai », Button `secondary` `sm` pleine largeur « Passer le test » ;
+   - terminé : Card `default`, « ✅ Test de la semaine terminé : {x}/{N} » + Badge Réussi/À retravailler + `caption` « Prochain test disponible lundi ».
+Le bouton principal reste visible sans scroll sur 667 pt (le hero est au-dessus de la ligne de flottaison).
+
+### 5.2 Apprendre
+1. Titre `h1` « Apprendre » + Vobi 56 `hello` à droite.
+2. Card `primary` « Ta prochaine session » : « 10 cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore. » (blanc) ; `caption` « Mots disponibles avec tes filtres : {k} » ; si k < 10 : « Ta session contiendra {k} cartes. »
+3. Card « Filtres » : rangée de 10 pastilles catégorie (emoji sur `soft`, opacité 0,35 + niveaux de gris si non sélectionnée) + « Niveaux : {Tous | liste} » ; Button `secondary` `md` « Modifier les filtres » (→ Réglages).
+4. Card « Comment ça marche » : trois étapes numérotées dans des pastilles `primarySoft` (texte v1 inchangé).
+5. Bouton `primary` `lg` fixé en bas « Commencer une session ».
+État pool vide : EmptyState Vobi `search` « Aucun mot ne correspond à tes filtres » + « Réinitialiser les filtres » ; bouton principal désactivé.
+
+### 5.3 Session de cartes
+1. **Header** (52) : « ✕ Quitter » (texte `primary` 900, 44 pt) ; ProgressBar 16 `primary` (n−1)/N ; compteur « {n}/{N} » `caption` 900.
+2. **Flashcard** (§4.3) avec marge 16.
+3. **Zone d'actions** (min 120, padding bas 34 + inset) :
+   - avant retournement : indice discret (Vobi 36 + « Tu le connais ? Pense à la traduction… », `caption` `ink`) puis Button `primary` « Retourner » ;
+   - après retournement : `caption` centrée « Sois honnête : l'app adapte tes révisions 😉 » puis deux boutons égaux (gap 12) : gauche `softDanger` « ✗ Je ne savais pas », droite `success` « ✓ Je savais ». Ordre de lecture v1 conservé (« Je savais » d'abord).
+Comportements, état vide (EmptyState Vobi `search`), Quitter sans confirmation : inchangés v1. Après « Je savais » : la barre avance avec un petit éclat (§6) ; après « Je ne savais pas » : aucune animation négative.
+
+### 5.4 Résultat de session
+Confettis (§4.12) si ≥ 50 % de « Je savais » ; sinon pas de confettis et Vobi `hello` « Bel effort ! ».
+Bloc centré verticalement :
+1. Vobi 150 `correct` (rebond d'entrée).
+2. `h1` « Session terminée ! » + `body` `inkMuted` « Excellent rythme, tes mots s'accrochent. » (< 50 % : « Chaque carte te rapproche du but. »).
+3. Deux StatTile : `success` « {connus} / {N} » + « mots que tu savais » ; `sun` « ⭐ {m} » + « nouveaux mots maîtrisés » (m = 0 → tuile blanche, « 0 »).
+4. Card objectif : ProgressRing 64 « {x} / {objectif} » + titre « Objectif du jour atteint 🎯 » (`successInk`) ou « Encore {r} cartes pour atteindre ton objectif » ; sous-titre « Série : 🔥 {s} jours de suite ».
+5. Actions en bas : `primary` « Nouvelle session » ; `secondary` « Accueil ».
+Les chiffres « {connus} » et « {x} » comptent de 0 à la valeur en 600 ms (§6).
+
+### 5.5 Progrès
+1. `h1` « Progrès ».
+2. **Hero** Card `primary` : « {pct} % » 44/900 blanc + « de la banque maîtrisée » ; 🚀 à droite ; barre 16 `sun` sur piste blanche 25 % ; deux mini-tuiles translucides (`rgba(255,255,255,0.16)`) : « 👀 {vus} / 200 · Mots vus » et « ✅ {maîtrisés} / 200 · Mots maîtrisés ».
+3. **Card série** : « 🔥 {s} jours · Série actuelle » (`flameInk`) et « 🏆 {b} jours · Meilleure série » ; WeekStrip 28 pt en dessous.
+4. `h2` « Par catégorie » puis grille 2 colonnes de CategoryCard dans l'ordre RG-04.
+5. `caption` : « Un mot est maîtrisé quand tu l'as su plusieurs fois de suite. »
+État vide : au-dessus des catégories, EmptyState compact Vobi `empty` « Ta progression apparaîtra ici » / « Fais ta première session pour commencer. » / `primary` « Commencer une session » ; catégories visibles à 0 %.
+
+### 5.6 Test (onglet)
+1. `h1` « Test de la semaine » + `overline` « Semaine {ww} – {yyyy} ».
+2. Card d'état :
+   - **Verrouillé** : Card `sun` ; « 🔒 Étudie encore {X} mots pour débloquer le test de la semaine » (`sunInk`) ; barre `sun` vus/10 ; `primary` « Commencer une session ».
+   - **Disponible** : Card blanche avec Vobi 72 `hello` ; « ✨ Ton test est prêt » `h3` ; « {N} questions à choix multiples sur les mots que tu as étudiés. Pas de limite de temps. » ; `caption` « Réussi à partir de 70 %. Un seul essai par semaine. » ; `primary` « Commencer le test ».
+   - **Terminé** : « ✅ Test de la semaine terminé : {x}/{N} » + Badge ; `caption` « Prochain test disponible lundi ».
+3. `h2` « Historique » : lignes Card compactes : pastille ronde 40 (🏅 `successSoft` si réussi / 📖 `dangerSoft` sinon) ; « Semaine {ww} – {yyyy} » `bodyStrong` + date `caption` ; à droite « {x}/{N} · {pct} % » + Badge. Plus récent en premier.
+État vide : EmptyState Vobi `empty` « Aucun test pour l'instant » + « Ton premier score s'affichera ici. » (sans bouton).
+
+### 5.7 Déroulé du test
+1. Header identique à la session : « ✕ Quitter » · barre (i−1)/N · « {i}/{N} ».
+2. Ligne consigne : impaire « Quelle est la traduction de ce mot ? » + badge « EN → FR » ; paire « Comment dit-on ce mot en anglais ? » + badge « FR → EN ».
+3. Card mot (rayon 26, padding 26) : `overline` « 🇬🇧 Anglais » / « 🇫🇷 Français » + mot `wordL` centré.
+4. 4 OptionButton (gap 12).
+5. FeedbackSheet (§4.11) après réponse uniquement.
+Comportements v1 inchangés : feedback instantané, pas d'avancement automatique, pas de retour, « Quitter » avec confirmation « Abandonner le test ? » (« Continuer le test » / « Abandonner »).
+
+### 5.8 Résultat du test
+1. Confettis + Vobi 120 `win` si réussi ; Vobi 120 `retry` sans confettis sinon.
+2. `overline` « Semaine {ww} – {yyyy} » + `h1` « Résultat du test ».
+3. Ligne score : « {x} / {N} » `score` + colonne « {pct} % » (22/900, `successInk` ou `dangerInk`) et Badge `big` « 🏅 Réussi » ou « À retravailler ».
+4. `caption` « Seuil de réussite : 70 % ».
+5. Card « Mots à revoir ({k}) » : lignes « [pastille catégorie] **{en}** — {fr} », séparateurs pointillés ; k = 0 : Vobi `correct` 56 + « Aucune erreur, bravo ! 🎉 ».
+6. `caption` « Ces mots reviendront plus souvent dans tes sessions. » (si raté, précédé de « On y retourne ! »).
+7. `primary` fixé en bas « Retour à l'accueil ».
+
+### 5.9 Réglages
+Structure v1 inchangée, habillage v2 :
+1. Section « Objectif quotidien » : SegmentedControl 3D 10 / 20 / 30 + `caption`.
+2. Section « Filtres des sessions » : chips niveaux ; chips catégories avec emoji ; lien « Tout sélectionner » ; aide RG-50 ; « Mots disponibles : {k} ».
+3. Section « Données » : Card `default` « 📱 Données stockées uniquement sur cet appareil. » + Button `danger` `md` « Réinitialiser ma progression » ; confirmation `Alert` v1 (« Cette action est irréversible… », « Annuler » / « Réinitialiser ») ; toast « Progression réinitialisée ».
+4. Pied : Vobi 36 + « VocaBoost v1.0 » `caption`.
+
+---
+
+## 6. Animations et feedback
+
+Bibliothèque : `Animated` de React Native (ou `react-native-reanimated`, **déjà installé**). `useNativeDriver: true` partout (transform/opacity). Toute animation est déclenchée par un événement : **aucune boucle infinie**.
+
+| Élément | Animation | Durée | Easing | Si « Réduire les animations » |
+|---|---|---|---|---|
+| Appui bouton/option/carte | face translateY 0 → depth | 60 ms enfoncé ; 120 ms retour | `Easing.out(quad)` / ressort (friction 6) | Changement instantané (sans transition) |
+| Flashcard retournement | rotateY 0 → 180° (2 faces, `backfaceVisibility`) + scale 1 → 1,03 → 1 | 320 ms | `Easing.inOut(cubic)` | Fondu enchaîné 150 ms |
+| Carte suivante | sortie translateX −40 + opacité 0 ; entrée scale 0,96 → 1 + opacité | 200 ms + 180 ms | `out(quad)` | Fondu 150 ms |
+| Barre de progression | largeur vers la nouvelle valeur ; après « Je savais » : reflet qui traverse | 300 ms | `out(cubic)` | Saut direct |
+| Option correcte | pop scale 1 → 1,04 → 1 | 180 ms | ressort | Aucune |
+| Option incorrecte | secousse translateX 0, −6, 6, −4, 4, 0 | 300 ms | linéaire | Aucune |
+| FeedbackSheet | translateY 100 % → 0 | 220 ms | `out(back(1.2))` | Fondu 150 ms |
+| Vobi entrée (résultats, bandeaux) | scale 0,6 → 1,08 → 1 + rotate −6° → 0 | 400 ms | ressort | Affiché directement |
+| Compteurs de score | 0 → valeur | 600 ms | `out(cubic)` | Valeur finale directe |
+| ProgressRing objectif atteint | rotation du remplissage + 🎯 pop | 500 ms | `out(cubic)` | Direct |
+| Confettis | §4.12 | 1 400-1 800 ms, une fois | `out(quad)` | 10 confettis immobiles |
+| Onglet sélectionné | emoji scale 1 → 1,15 → 1 | 180 ms | ressort | Aucune |
+
+Règles :
+- L'enregistrement (RG-14, RG-69) se fait **au tap, avant** l'animation ; aucune action n'attend la fin d'une animation de plus de 200 ms (les boutons d'évaluation sont actifs dès que la face verso est visible ; cf. point connu RT-02 à garder ≤ 300 ms).
+- Lecture de `AccessibilityInfo.isReduceMotionEnabled()` au montage + écoute `reduceMotionChanged` ; un hook `useReducedMotion()` partagé.
+- Vibration légère (`Vibration.vibrate(10)`, API native déjà utilisée) sur « Je savais » et sur bonne réponse ; jamais sur une erreur. Sons : non (proposition §9).
+
+---
+
+## 7. Accessibilité (conservée et renforcée)
+
+- Cibles ≥ 44 × 44 pt (boutons 44-56, options ≥ 60, chips 44, 🔊 44-56 ; `hitSlop` pour « Modifier ») ; ≥ 8 pt entre cibles.
+- Contrastes : tous les couples texte/fond du §3.1 sont ≥ 4,5:1 (texte blanc sur `primary` 5,85, `success` 4,99, `danger` 4,59) ; `flame`, `successBright`, `sun` ne portent **jamais** de texte blanc ni de texte fin.
+- Couleur jamais seule (✓/✗, libellés, %).
+- Vobi, confettis, emoji décoratifs : `accessible={false}` ; les messages de Vobi sont du texte réel lisible par le lecteur d'écran (bulle = `Text`).
+- Profondeur 3D : purement visuelle, l'état pressé ne transmet aucune information.
+- Texte dynamique : grilles 2 colonnes → 1 colonne au-delà d'un facteur 1,3 ; `minHeight` plutôt que `height` (sauf pastilles décoratives).
+- Annonces lecteur d'écran, `accessibilityLanguage="en-US"` sur les mots anglais, labels v1 : inchangés.
+- Réduction des animations : §6.
+
+---
+
+## 8. Directives UX
+
+### 8.1 Flux d'écrans
+Inchangés par rapport à la v1 (arborescence expo-router, diagramme, règles de navigation, confirmations) :
 
 ```mermaid
 flowchart TD
@@ -36,450 +470,85 @@ flowchart TD
     P[Progrès]
     T[Test]
   end
-
   H -- "Commencer une session (1 tap)" --> S[Session de cartes]
   L -- "Commencer une session" --> S
-  H -- "Réglages ⚙️" --> R[Réglages]
-  H -- "Carte test de la semaine" --> T
-  H -- "Carte progression" --> P
+  H -- "⚙️" --> R[Réglages]
+  H -- "Carte test" --> T
+  H -- "Carte mots maîtrisés" --> P
   L -- "Modifier les filtres" --> R
-
-  S -- "dernière carte évaluée (replace)" --> SR[Résultat de session]
+  S -- "dernière carte (replace)" --> SR[Résultat de session]
   S -- "Quitter (sans confirmation)" --> H
-  S -- "pool vide → Réinitialiser les filtres" --> S
   SR -- "Nouvelle session (replace)" --> S
   SR -- "Accueil" --> H
-
   T -- "verrouillé : Commencer une session" --> S
   T -- "disponible : Commencer le test" --> TR[Déroulé du test]
-  TR -- "Quitter → confirmation → Abandonner" --> T
-  TR -- "dernière question → Voir le résultat (replace)" --> TRES[Résultat du test]
+  TR -- "Quitter → Abandonner le test ?" --> T
+  TR -- "Voir le résultat (replace)" --> TRES[Résultat du test]
   TRES -- "Retour à l'accueil" --> H
-
-  R -- "Réinitialiser ma progression → confirmation" --> R
 ```
 
-Règles de navigation :
-- « Quitter » une session : **pas de confirmation** (rien n'est perdu, RG-14/34) → `router.back()` vers l'onglet d'origine.
-- « Quitter » un test : **confirmation obligatoire** (le test en cours est perdu, RG-67).
-- Résultats (session/test) : retour natif = même action que le bouton principal de retour (« Accueil » / « Retour à l'accueil ») ; jamais de retour vers la dernière carte/question.
-
----
-
-## 2. Design system
-
-### 2.1 Couleurs (tokens)
-
-Contrastes calculés sur fond `surface` (#FFFFFF) sauf mention. Texte normal ≥ 4.5:1, éléments d'interface ≥ 3:1 (WCAG AA).
-
-| Token | Hex | Usage | Contraste |
-|---|---|---|---|
-| `bg` | `#F6F7FB` | Fond des écrans | — |
-| `surface` | `#FFFFFF` | Cartes, boutons secondaires, onglets | — |
-| `surfaceAlt` | `#EEF0F6` | Pistes de ProgressBar, zones neutres | — |
-| `border` | `#D9DCE5` | Séparateurs décoratifs uniquement | décoratif |
-| `borderStrong` | `#6B7280` | Contours d'éléments interactifs (Chip, OptionButton, Button secondaire) | 4.8:1 |
-| `text` | `#111827` | Texte principal, titres | 17.7:1 |
-| `textMuted` | `#4B5563` | Texte secondaire, légendes | 7.6:1 |
-| `textOnColor` | `#FFFFFF` | Texte sur primary/success/danger | voir lignes ci-dessous |
-| `primary` | `#4338CA` | Bouton primaire, onglet actif, liens, Chip sélectionnée | 7.9:1 (blanc dessus : 7.9:1) |
-| `primaryPressed` | `#3730A3` | État pressé du primaire | 9.6:1 |
-| `primarySoft` | `#E0E7FF` | Fond Chip sélectionnée, badge, sélection | `primaryPressed` dessus : 7.6:1 |
-| `success` | `#15803D` | Bonne réponse (bordure + texte), barre « maîtrisés », « Réussi » | 5.0:1 (blanc dessus : 5.0:1) |
-| `successSoft` | `#DCFCE7` | Fond option correcte | `#14532D` dessus : 9.9:1 |
-| `successText` | `#14532D` | Texte sur `successSoft` | — |
-| `danger` | `#B91C1C` | Mauvaise réponse, bouton danger, « À retravailler » | 6.5:1 (blanc dessus : 6.5:1) |
-| `dangerSoft` | `#FEE2E2` | Fond option incorrecte | `#7F1D1D` dessus : 9.4:1 |
-| `dangerText` | `#7F1D1D` | Texte sur `dangerSoft` | — |
-| `warning` | `#B45309` | Série (🔥 + nombre), état verrouillé | 5.0:1 |
-| `warningSoft` | `#FEF3C7` | Fond bandeau verrouillé / info | `#78350F` dessus : 9.2:1 |
-| `disabledBg` | `#E5E7EB` | Fond bouton désactivé | — |
-| `disabledText` | `#6B7280` | Texte désactivé (sur `disabledBg` : 4.0:1 — exempté AA car inactif, reste lisible) | — |
-| `overlay` | `rgba(17,24,39,0.5)` | Fond derrière une boîte de dialogue custom | — |
-
-Règle : la couleur n'est **jamais** le seul signal. Bonne/mauvaise réponse portent aussi un symbole texte (« ✓ » / « ✗ ») et un libellé d'accessibilité.
-
-Badges de niveau (fond `primarySoft`, texte `primaryPressed`) : identiques pour A1→B2, seul le texte change (pas de code couleur par niveau).
-
-### 2.2 Typographie
-
-Police système (San Francisco / Roboto), aucune police à charger. `allowFontScaling` activé partout ; `maxFontSizeMultiplier = 1.6` sur le mot de la Flashcard et les chiffres des StatTile.
-
-| Token | Taille / interligne | Poids | Usage |
-|---|---|---|---|
-| `display` | 40 / 48 | 700 | Mot anglais sur la Flashcard, score du test |
-| `h1` | 28 / 34 | 700 | Titre d'écran (onglets) |
-| `h2` | 22 / 28 | 700 | Titre de section, mot de la question QCM |
-| `h3` | 18 / 24 | 600 | Titre de Card, libellé de bouton large |
-| `body` | 16 / 24 | 400 | Texte courant, options QCM, phrase d'exemple |
-| `bodyStrong` | 16 / 24 | 600 | Libellés de bouton, valeurs inline |
-| `caption` | 13 / 18 | 500 | Légendes, badges, « Carte 3 / 10 », dates |
-| `stat` | 32 / 38 | 700 | Valeur d'un StatTile |
-
-Phrase d'exemple : `body` en italique, couleur `textMuted`. Traduction FR au verso : `h2`, couleur `primary`.
-
-### 2.3 Espacements (échelle 4 pt)
-
-| Token | Valeur |
+### 8.2 Confirmations
+| Action | Confirmation |
 |---|---|
-| `xs` | 4 |
-| `sm` | 8 |
-| `md` | 12 |
-| `lg` | 16 |
-| `xl` | 24 |
-| `xxl` | 32 |
-| `xxxl` | 48 |
-
-- Marge horizontale des écrans : `lg` (16). Espace entre sections : `xl` (24). Entre éléments d'une liste/Card : `md` (12).
-- Padding interne Card : `lg` (16) ; Flashcard : `xl` (24).
-- Contenu dans `SafeAreaView` ; boutons d'action fixés en bas avec padding bas `lg` + inset de sécurité.
-
-### 2.4 Rayons
-
-| Token | Valeur | Usage |
-|---|---|---|
-| `radiusSm` | 8 | Badges, ProgressBar (pistes : `radiusPill`) |
-| `radiusMd` | 12 | Boutons, OptionButton, Chip carrée |
-| `radiusLg` | 16 | Card, StatTile |
-| `radiusXl` | 24 | Flashcard |
-| `radiusPill` | 999 | Chip de filtre, ProgressBar |
-
-### 2.5 Ombres
-
-| Token | iOS | Android | Usage |
-|---|---|---|---|
-| `shadowSm` | `shadowColor #111827, opacity 0.06, radius 4, offset {0,1}` | `elevation 1` | Card, StatTile |
-| `shadowMd` | `shadowColor #111827, opacity 0.10, radius 12, offset {0,4}` | `elevation 4` | Flashcard, bouton primaire fixé en bas |
-
-Pas d'ombre sur les éléments désactivés ni sur OptionButton (bordure seulement).
-
-### 2.6 Tailles et cibles
-
-- Toute cible tactile ≥ **44 × 44 pt** (utiliser `hitSlop` si l'élément visuel est plus petit, ex. bouton 🔊 de 36 pt → `hitSlop` 4).
-- Hauteur Button : 52 (taille `lg`) / 44 (taille `md`). OptionButton : min 56. Chip : 44. Barre d'onglets : hauteur système.
-- Largeur des boutons d'action principaux : pleine largeur (moins les marges).
-
----
-
-## 3. Composants réutilisables
-
-Fichiers suggérés : `components/ui/*.tsx`, tokens dans `theme/tokens.ts` (exports `colors`, `spacing`, `radius`, `typography`, `shadows`).
-
-### 3.1 Button
-
-Props : `label: string`, `onPress()`, `variant: 'primary' | 'secondary' | 'danger'` (défaut `primary`), `tone?: 'default' | 'success'` (primary seulement : fond `success`, pressé `#166534`), `size: 'md' | 'lg'` (défaut `lg`), `disabled?: boolean`, `loading?: boolean`, `leftEmoji?: string`, `accessibilityLabel?: string`, `accessibilityHint?: string`, `testID?: string`.
-
-| Variante | Fond | Texte | Bordure | Pressé |
-|---|---|---|---|---|
-| primary | `primary` | `textOnColor` | — | fond `primaryPressed` |
-| secondary | `surface` | `primary` | 1.5 `borderStrong` | fond `primarySoft` |
-| danger | `danger` | `textOnColor` | — | opacité 0.85 |
-| désactivé (toutes) | `disabledBg` | `disabledText` | — | aucun retour |
-
-Comportement : `Pressable`, `accessibilityRole="button"`, `accessibilityState={{ disabled, busy: loading }}`. `loading` affiche un `ActivityIndicator` de la couleur du texte et bloque les taps. Anti-double-tap : ignorer un second tap tant que l'action synchrone n'est pas terminée (important pour « Je savais » / « Suivant »).
-
-### 3.2 Card
-
-Props : `children`, `onPress?()`, `title?: string`, `accessibilityLabel?: string`, `style?`.
-Fond `surface`, `radiusLg`, padding `lg`, `shadowSm`. Si `onPress` : `accessibilityRole="button"`, opacité 0.9 au pressé, chevron texte « › » à droite du titre.
-
-### 3.3 Flashcard (retournement)
-
-Props : `word: { en, fr, example, level, categoryLabel }`, `index: number`, `total: number`, `flipped: boolean`, `onFlip()`, `onSpeak?(text: string)` (P2, absent → boutons 🔊 masqués).
-
-- Zone carte : `surface`, `radiusXl`, `shadowMd`, padding `xl`, hauteur min 320, centrée.
-- **Recto** : en haut ligne `caption` « Carte {n} / {N} » (gauche) + badge niveau + catégorie (droite) ; centre : mot EN en `display` ; sous le mot (P2) bouton 🔊 ; bas : texte `caption` `textMuted` « Touchez la carte pour la retourner ».
-- **Verso** : mot EN (`h2`, `text`) + 🔊 ; séparateur `border` ; traduction FR (`h2`, `primary`) ; phrase d'exemple (`body` italique `textMuted`) + 🔊 phrase.
-- Animation : rotation Y 0→180° en **300 ms** (`Animated` natif, `backfaceVisibility: 'hidden'`, deux faces superposées). Si « Réduire les animations » est actif (`AccessibilityInfo.isReduceMotionEnabled`) : fondu enchaîné 150 ms.
-- Le retournement est **à sens unique** dans une carte (une fois retournée, un tap ne revient pas au recto) — évite d'évaluer recto visible.
-- Accessibilité : la carte est un bouton tant que non retournée, `accessibilityLabel="Mot anglais : {en}. Niveau {level}, {catégorie}. Carte {n} sur {N}"`, `accessibilityHint="Touchez deux fois pour voir la traduction"`. Après retournement : annoncer `"Traduction : {fr}. Exemple : {example}"` (`AccessibilityInfo.announceForAccessibility`).
-- À chaque nouvelle carte : remise à `flipped=false` sans animation, arrêt TTS (RG-81).
-
-### 3.4 ProgressBar
-
-Props : `value: number` (0–1, borné), `color?: 'primary' | 'success'` (défaut `primary`), `height?: 8 | 12` (défaut 8), `accessibilityLabel: string`.
-Piste `surfaceAlt`, remplissage couleur, `radiusPill`. Valeur > 1 (objectif dépassé) → barre pleine. Animation de largeur 250 ms au changement (sauf réduction des animations). `accessibilityRole="progressbar"`, `accessibilityValue={{ min: 0, max: 100, now: floor(value*100) }}`.
-
-### 3.5 StatTile
-
-Props : `value: string | number`, `label: string`, `emoji?: string`, `sublabel?: string`, `tone?: 'default' | 'success' | 'warning'`.
-Fond `surface`, `radiusLg`, `shadowSm`, padding `lg`, min hauteur 96. Ligne 1 : emoji + valeur (`stat`, couleur selon tone : `text` / `success` / `warning`). Ligne 2 : `label` (`caption`, `textMuted`). `sublabel` optionnel en `caption`. Groupé (`accessible`) avec `accessibilityLabel="{label} : {value} {sublabel}"`. Utilisé en grille 2 colonnes (gap `md`).
-
-### 3.6 Chip de filtre
-
-Props : `label: string`, `selected: boolean`, `onToggle()`, `locked?: boolean` (dernier élément sélectionné du groupe).
-
-| État | Fond | Texte | Bordure |
-|---|---|---|---|
-| non sélectionné | `surface` | `text` | 1.5 `borderStrong` |
-| sélectionné | `primarySoft` | `primaryPressed`, préfixe « ✓ » | 1.5 `primary` |
-| verrouillé (sélectionné, dernier) | idem sélectionné | idem | idem |
-
-Hauteur 44, padding horizontal `lg`, `radiusPill`, disposés en `flexWrap` (gap `sm`). Tap sur une chip `locked` : aucun changement + toast/texte d'aide inline sous le groupe « Garde au moins un élément sélectionné. » (3 s) — RG-50. `accessibilityRole="checkbox"`, `accessibilityState={{ checked: selected }}`.
-
-### 3.7 OptionButton (QCM)
-
-Props : `label: string`, `state: 'idle' | 'correct' | 'incorrect' | 'disabled'`, `onPress()`, `index: number` (pour l'ordre de lecture).
-
-| État | Fond | Bordure | Texte | Marqueur droite |
-|---|---|---|---|---|
-| idle | `surface` | 1.5 `borderStrong` | `text` | — |
-| idle pressé | `primarySoft` | 2 `primary` | `text` | — |
-| correct | `successSoft` | 2 `success` | `successText` 600 | « ✓ » `success` |
-| incorrect | `dangerSoft` | 2 `danger` | `dangerText` 600 | « ✗ » `danger` |
-| disabled | `surface` | 1.5 `border` | `textMuted` | — |
-
-Pleine largeur, min hauteur 56, `radiusMd`, padding `lg`, texte `body` sur 2 lignes max. Une fois une réponse choisie, **toutes** les options passent à `correct` (la bonne), `incorrect` (celle choisie si fausse) ou `disabled` (les autres) et ne sont plus pressables. Accessibilité : `accessibilityRole="button"`, label « Option {i} : {label} » ; après réponse, label suffixé « , bonne réponse » / « , ta réponse, incorrecte ».
-
-### 3.8 EmptyState
-
-Props : `emoji: string`, `title: string`, `message?: string`, `actionLabel?: string`, `onAction?()`.
-Centré, padding `xl` : emoji 48 pt (`accessible={false}`), `title` en `h3`, `message` en `body` `textMuted` centré, puis Button `secondary` (ou `primary` si c'est l'unique action de l'écran).
-
-### 3.9 Composants annexes
-
-- **Badge** : `caption`, fond `primarySoft`, texte `primaryPressed`, `radiusSm`, padding `xs`/`sm`. Variantes `success` (`successSoft`/`successText`) et `danger` (`dangerSoft`/`dangerText`) pour « Réussi » / « À retravailler ».
-- **ConfirmDialog** : utiliser `Alert.alert` natif (titre, message, 2 boutons ; bouton destructif avec `style: 'destructive'` sur iOS, `cancelable: true` sur Android = Annuler).
-- **SegmentedControl** (Réglages, objectif) : 3 segments « 10 », « 20 », « 30 », hauteur 44, segment actif fond `primary` texte blanc, inactifs fond `surface` texte `text`, bordure `borderStrong`. `accessibilityRole="radio"` par segment.
-- **ScreenHeader** des onglets : titre `h1`, marge haute `lg`.
-
----
-
-## 4. Écrans
-
-Conventions : `{x}` = valeur dynamique. Pluriels gérés (« 1 mot » / « 2 mots », « 1 jour » / « 3 jours », 0 → pluriel sauf « 0 jour »). Chargement global : tant que le store Zustand n'est pas réhydraté (`hasHydrated=false`), afficher un écran neutre (`bg` + `ActivityIndicator` `primary` centré) — pas de chiffre faux affiché. Erreur de lecture (RG-93) : état vierge silencieux, pas de message.
-
-### 4.0 Barre d'onglets
-
-| Onglet | Libellé | Emoji | Route |
-|---|---|---|---|
-| 1 | Accueil | 🏠 | `(tabs)/index` |
-| 2 | Apprendre | 📚 | `(tabs)/learn` |
-| 3 | Progrès | 📈 | `(tabs)/progress` |
-| 4 | Test | 📝 | `(tabs)/test` |
-
-Actif : libellé + emoji, texte `primary` 600 ; inactif : `textMuted`, emoji opacité 0.6. `tabBarAccessibilityLabel` = libellé. Pastille sur l'onglet Test (point `primary` 8 pt) quand le test est **disponible**.
-
-### 4.1 Accueil
-
-**Objectif** : lancer une session en 1 tap (US-01) et voir l'essentiel d'un coup d'œil (AC-04.1).
-
-**Hiérarchie** (de haut en bas, scrollable, bouton principal visible sans scroll sur un écran 667 pt) :
-1. En-tête : titre `h1` « Bonjour 👋 » ; à droite bouton texte « ⚙️ » (`accessibilityLabel="Réglages"`, 44×44) → Réglages.
-2. Card « Aujourd'hui » : ligne « Objectif du jour » + valeur `{x} / {objectif}` (bodyStrong) ; ProgressBar (`success` si atteint) ; sous-texte : non atteint « Encore {objectif − x} cartes pour atteindre ton objectif » / atteint « Objectif atteint ✅ ».
-3. Grille 2 StatTile : « 🔥 {série} » label « Série actuelle » (`warning`, sublabel « jours » / « jour ») ; « {pct} % » label « Mots maîtrisés » (sublabel « {maîtrisés} / 200 ») → tap ouvre Progrès.
-4. Bouton primaire `lg` « Commencer une session ».
-5. Ligne filtre (si un filtre est actif, RG-53) : `caption` `textMuted` « Filtres : {n} catégories, {niveaux} » + lien « Modifier » → Réglages. Format niveaux : liste contiguë « A1-A2 », sinon « A1, B1 » ; catégories : « 1 catégorie » / « {n} catégories » ou le nom si une seule (« Filtres : Voyage, A1 »). Masqué si tout est sélectionné.
-6. Card « Test de la semaine » (tap → onglet Test) selon état :
-   - verrouillé : « 🔒 Étudie encore {X} mots pour débloquer le test de la semaine » ;
-   - disponible : « ✨ Ton test de la semaine est disponible » + Button secondary `md` « Passer le test » ;
-   - terminé : « ✅ Test de la semaine terminé : {x}/{N} » + `caption` « Prochain test disponible lundi ».
-
-**États** :
-- Premier lancement (0 vu) : série 0, « 0 % », objectif « 0 / 10 », test verrouillé « Étudie encore 10 mots… ». Pas d'EmptyState : le bouton principal suffit ; sous-titre sous « Bonjour 👋 » : « Prêt pour tes 10 premiers mots ? ».
-- Pool filtré vide : le bouton reste actif ; l'écran Session affiche l'état vide (RG-22).
-- Chargement : écran neutre (cf. conventions).
-
-### 4.2 Apprendre (onglet)
-
-**Objectif** : point d'entrée « apprentissage » : rappeler ce que contiendra la session et les filtres, sans dupliquer les Réglages.
-
-**Hiérarchie** :
-1. Titre `h1` « Apprendre ».
-2. Card « Ta prochaine session » : `body` « 10 cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore. » ; ligne `caption` « Mots disponibles avec tes filtres : {k} » (k = taille du pool filtré).
-3. Card « Filtres » : résumé « Catégories : {Toutes | liste ou n} » / « Niveaux : {Tous | liste} » + Button secondary `md` « Modifier les filtres » → Réglages (section filtres).
-4. Card « Comment ça marche » (texte court, 3 lignes) :
-   « 1. Lis le mot anglais et cherche sa traduction.
-   2. Retourne la carte pour vérifier.
-   3. Dis honnêtement si tu savais : l'app adapte tes révisions. »
-5. Bouton primaire `lg` fixé en bas « Commencer une session ».
-
-**États** :
-- Pool vide (k = 0) : la Card 2 est remplacée par EmptyState 🔎 « Aucun mot ne correspond à tes filtres » + bouton « Réinitialiser les filtres » ; bouton principal désactivé.
-- Pool < 10 : `caption` supplémentaire « Ta session contiendra {k} cartes. »
-
-### 4.3 Session de cartes (empilé)
-
-**Objectif** : réviser 10 cartes vite, sans distraction (US-02, US-03).
-
-**Hiérarchie** :
-1. Header custom : bouton texte « Quitter » (gauche, 44 pt, `primary`) ; ProgressBar `primary` (n−1)/N au centre (`accessibilityLabel="Progression de la session : carte {n} sur {N}"`).
-2. Flashcard (3.3), centrée verticalement.
-3. Zone d'actions en bas (hauteur fixe 120, pour éviter un saut de mise en page) :
-   - avant retournement : Button primary « Retourner » ;
-   - après retournement : deux boutons côte à côte (gap `md`, largeurs égales) : gauche danger « ✗ Je ne savais pas », droite **primary vert** — utiliser la variante `primary` avec fond `success` (prop `tone="success"` acceptée par Button) « ✓ Je savais ». Ordre de lecture : « Je savais » puis « Je ne savais pas » (positionner visuellement à droite le positif).
-
-**Comportements** :
-- Tap carte ou « Retourner » → retournement (RG-31). Boutons d'évaluation absents avant (AC-03.3).
-- Tap évaluation → persistance immédiate (RG-14), petite vibration légère optionnelle (`Vibration` natif 10 ms ; pas de lib), carte suivante en glissement horizontal 200 ms (fondu si réduction d'animations).
-- Dernière carte évaluée → `router.replace('/session-result')`.
-- « Quitter » → retour immédiat sans confirmation (les stats à jour suffisent comme retour).
-- Retour Android / geste iOS = « Quitter ».
-
-**États** :
-- Chargement (tirage) : instantané (local) ; pas de spinner. Si le tirage prend > 100 ms afficher `ActivityIndicator`.
-- **Vide** (pool = 0, RG-22) : EmptyState 🔎 titre « Aucun mot ne correspond à tes filtres », message « Élargis ta sélection de catégories ou de niveaux. », action « Réinitialiser les filtres » (remet tout coché, puis tire une session et affiche la 1re carte) ; header « Quitter » conservé.
-- Session courte (k < 10) : « Carte n / k » ; aucun message spécifique.
-- Terminé : redirection vers Résultat.
-
-### 4.4 Résultat de session (empilé)
-
-**Objectif** : valoriser l'effort et relancer (RG-35, AC-03.8).
-
-**Hiérarchie** :
-1. Emoji 48 « 🎉 » (si ≥ 50 % de « Je savais ») sinon « 💪 » ; titre `h1` « Session terminée ».
-2. Grand score `display` « {connus} / {N} », légende `caption` « mots que tu savais ».
-3. StatTile « ⭐ {m} » label « Nouveaux mots maîtrisés » (m = mots dont la boîte a atteint 4 pendant la session ; tone `success` si m > 0).
-4. Card « Objectif du jour » : `{x} / {objectif}` + ProgressBar + texte « Objectif atteint ✅ » ou « Encore {reste} cartes pour atteindre ton objectif ».
-5. Boutons en bas : primary « Nouvelle session » ; secondary « Accueil ».
-
-**États** : m = 0 → tile affichée avec « 0 » ton default. Objectif atteint pendant cette session → texte « Objectif du jour atteint 🎯 » en `success` au-dessus de la Card.
-
-### 4.5 Progrès (onglet)
-
-**Objectif** : mesurer les progrès réels (US-04, US-05). Les filtres n'ont aucun effet ici.
-
-**Hiérarchie** :
-1. Titre `h1` « Progrès ».
-2. Card résumé : « {pct} % » (`stat`, `primary`) + label « Progression globale » + ProgressBar `success` (hauteur 12).
-3. Grille 2×2 StatTile : « 👀 {vus} » « Mots vus » sublabel « sur 200 » ; « ✅ {maîtrisés} » « Mots maîtrisés » sublabel « sur 200 » (`success`) ; « 🔥 {série} » « Série actuelle » (`warning`) ; « 🏆 {meilleure} » « Meilleure série ».
-4. Section `h2` « Par catégorie » : liste de 10 lignes (ordre RG-04), chaque ligne (Card compacte, non pressable) :
-   - ligne 1 : nom de la catégorie (`bodyStrong`) — à droite « {pct} % » (`bodyStrong`) ;
-   - ligne 2 : ProgressBar `success` (maîtrisés/20) ;
-   - ligne 3 : `caption` `textMuted` « {vus}/20 vus · {maîtrisés}/20 maîtrisés ».
-   - `accessibilityLabel="{catégorie} : {vus} mots vus sur 20, {maîtrisés} maîtrisés, {pct} pour cent"`.
-5. `caption` explicatif en bas : « Un mot est maîtrisé quand tu l'as su plusieurs fois de suite. »
-
-**États** :
-- Vide (0 vu) : les tuiles affichent 0 ; au-dessus de la section catégories, EmptyState compact 🌱 « Ta progression apparaîtra ici » / « Fais ta première session pour commencer. » / action primary « Commencer une session ». La liste des catégories reste visible (toutes à 0 %).
-
-### 4.6 Test (onglet)
-
-**Objectif** : afficher l'état du test de la semaine et l'historique (US-07, US-08).
-
-**Hiérarchie** :
-1. Titre `h1` « Test de la semaine » ; `caption` « Semaine {ww} – {yyyy} ».
-2. Card d'état (une des trois) :
-   - **Verrouillé** (vus < 10) : fond `warningSoft`, texte `#78350F` : « 🔒 Étudie encore {X} mots pour débloquer le test de la semaine » (X = 10 − vus ; « 1 mot » au singulier) ; ProgressBar vus/10 ; Button primary « Commencer une session ».
-   - **Disponible** : « ✨ Ton test est prêt » (`h3`) ; `body` « {N} questions à choix multiples sur les mots que tu as étudiés. Pas de limite de temps. » ; `caption` « Réussi à partir de 70 %. Un seul essai par semaine. » ; Button primary « Commencer le test ».
-   - **Terminé** : « ✅ Test de la semaine terminé : {x}/{N} » + Badge « Réussi » / « À retravailler » ; `caption` « Prochain test disponible lundi ».
-3. Section `h2` « Historique » : liste, plus récent en premier (AC-08.2). Ligne : gauche « Semaine {ww} – {yyyy} » (`bodyStrong`) + `caption` date de fin « {jj/mm/aaaa} » ; droite « {x}/{N} · {pct} % » + Badge Réussi (success) / À retravailler (danger). Ligne non pressable.
-
-**États** :
-- Historique vide : EmptyState compact 🗓️ « Aucun test pour l'instant » (AC-08.4), sans bouton.
-- Chargement : cf. conventions.
-- Changement de semaine pendant que l'écran est ouvert : recalcul de l'état au focus de l'onglet (`useFocusEffect`).
-
-### 4.7 Déroulé du test (empilé)
-
-**Objectif** : répondre à N questions QCM avec feedback immédiat (RG-64 → 66).
-
-**Hiérarchie** :
-1. Header : « Quitter » (gauche) ; au centre `caption` « Question {i} / {N} » ; ProgressBar (i−1)/N sous le header.
-2. Consigne `caption` `textMuted` :
-   - impaire (EN→FR) : « Quelle est la traduction de ce mot ? » ;
-   - paire (FR→EN) : « Comment dit-on ce mot en anglais ? ».
-3. Mot de la question en `h2` centré dans une Card (padding `xl`) ; petit badge langue « EN » ou « FR » au-dessus.
-4. 4 OptionButton empilés (gap `md`).
-5. Zone bas (hauteur réservée 76) : vide avant réponse ; après réponse, ligne de feedback + Button primary « Suivant » (dernière question : « Voir le résultat »).
-
-**Comportements (feedback immédiat)** :
-- Tap sur une option → instantanément : option correcte en vert ✓, option choisie en rouge ✗ si fausse, autres désactivées (OptionButton 3.7). Aucune animation > 150 ms.
-- Ligne de feedback (`bodyStrong`) : « ✓ Bonne réponse ! » (`success`) ou « ✗ La bonne réponse était : {réponse} » (`danger`). Annoncée aux lecteurs d'écran.
-- « Suivant » apparaît uniquement après réponse ; pas de passage automatique. Pas de bouton « Passer », pas de retour (RG-66). TTS absent.
-- Après la dernière réponse + « Voir le résultat » : application des boîtes et enregistrement (RG-69/71), puis `router.replace('/test-result')`.
-- **Quitter** (bouton, retour Android, geste iOS) → `Alert` : titre « Abandonner le test ? », message « Ta progression dans ce test sera perdue. Tu pourras le recommencer plus tard cette semaine. », boutons « Continuer le test » (cancel) / « Abandonner » (destructive) → retour onglet Test, test toujours disponible (RG-67).
-
-**États** :
-- Accès alors que le test n'est plus disponible (ex. deep link, double tap) : `router.replace('/(tabs)/test')`.
-- App fermée en plein test : à la réouverture, aucun test en cours (abandon implicite, nouveau tirage).
-
-### 4.8 Résultat du test (empilé)
-
-**Objectif** : donner le score et ce qu'il faut retravailler (RG-70).
-
-**Hiérarchie** :
-1. Emoji 48 « 🏅 » (réussi) / « 📖 » (à retravailler) ; titre `h1` « Résultat du test ».
-2. Score `display` « {x} / {N} » ; dessous « {pct} % » `h2`.
-3. Badge large « Réussi » (success) ou « À retravailler » (danger) ; `caption` « Seuil de réussite : 70 % ».
-4. Section `h2` « Mots à revoir ({k}) » : liste « {en} — {fr} » (`body`, `en` en 600). Si k = 0 : « Aucune erreur, bravo ! 🎉 ».
-5. `caption` « Les mots ratés reviendront plus souvent dans tes sessions. »
-6. Bouton primary fixé en bas « Retour à l'accueil ».
-
-**États** : liste longue (jusqu'à 20) → scroll, bouton toujours visible.
-
-### 4.9 Réglages (empilé)
-
-**Objectif** : objectif quotidien, filtres, réinitialisation (RG-44, 50–53, 94).
-
-**Hiérarchie** (ScrollView, header natif « Réglages » avec retour) :
-1. Section `h2` « Objectif quotidien » : `caption` « Nombre de cartes à réviser chaque jour » ; SegmentedControl 10 / 20 / 30 (sauvegarde immédiate).
-2. Section `h2` « Filtres des sessions » : `caption` « Ils s'appliquent uniquement aux sessions de cartes, pas au test ni aux statistiques. »
-   - Sous-titre `h3` « Niveaux » : Chips A1, A2, B1, B2.
-   - Sous-titre `h3` « Catégories » : 10 Chips (libellés RG-04) ; lien texte « Tout sélectionner » à droite du sous-titre (masqué si tout est déjà sélectionné).
-   - Texte d'aide RG-50 au tap sur le dernier élément : « Garde au moins un élément sélectionné. »
-   - `caption` « Mots disponibles : {k} ».
-3. Section `h2` « Données » : `body` « 📱 Données stockées uniquement sur cet appareil. » ; Button danger `md` « Réinitialiser ma progression ».
-4. Pied `caption` `textMuted` « VocaBoost v1.0 ».
-
-**Confirmation réinitialisation** (`Alert`) : titre « Réinitialiser ma progression ? », message « Cette action est irréversible. Tes mots vus, ta série et l'historique des tests seront effacés. Ton objectif et tes filtres sont conservés. », boutons « Annuler » (cancel) / « Réinitialiser » (destructive). Après confirmation : toast/bandeau `success` 3 s « Progression réinitialisée » en haut de l'écran (composant simple, pas de lib), l'utilisateur reste sur Réglages.
-
-**États** : toutes les modifications sont persistées sans bouton « Enregistrer ».
-
----
-
-## 5. Directives UX
-
-### 5.1 Retour visuel et rythme
-- Toute action produit un retour < 100 ms (état pressé, changement d'état). Les évaluations et réponses sont enregistrées au tap, avant l'animation.
-- QCM : vert = bonne réponse, rouge = mauvaise choisie, toujours accompagnés de ✓/✗ et d'un texte ; puis bouton « Suivant » explicite (jamais d'avancement automatique).
-- Les écrans de résultat utilisent un ton encourageant, jamais culpabilisant (« À retravailler », pas « Échec »).
-
-### 5.2 Confirmations
-| Action | Confirmation | Raison |
-|---|---|---|
-| Quitter une session | Non | Rien n'est perdu (RG-14/34) |
-| Quitter / retour pendant un test | Oui (« Abandonner le test ? ») | Test perdu (RG-67) |
-| Réinitialiser ma progression | Oui (« Réinitialiser ma progression ? ») | Irréversible (RG-94) |
-| Changer objectif / filtres | Non | Réversible |
-
-### 5.3 Accessibilité
-- Chaque élément interactif a `accessibilityRole` et `accessibilityLabel` en français ; les emoji décoratifs sont exclus (`accessible={false}` ou intégrés à un label textuel). Le bouton ⚙️ a le label « Réglages » ; 🔊 « Écouter le mot » / « Écouter la phrase d'exemple ».
-- Cibles ≥ 44 × 44 pt ; espacement ≥ 8 pt entre cibles adjacentes.
-- Contrastes conformes à §2.1 ; ne pas utiliser `textMuted` sur `surfaceAlt` pour du texte < 18 pt sans vérification (OK : 6.7:1).
-- Texte dynamique supporté : mises en page en flex, pas de hauteur fixe sur les conteneurs de texte (sauf zone d'actions de Session, qui doit grandir si la police est agrandie : utiliser `minHeight`).
-- Réduction des animations respectée (Flashcard, transitions, ProgressBar).
-- Annonces lecteur d'écran : retournement de carte, feedback QCM, passage à la carte/question suivante (« Carte {n} sur {N} »).
-- Mots anglais : `accessibilityLanguage="en-US"` (iOS) sur les textes en anglais.
-
-### 5.4 Cas limites
-| Cas | Comportement attendu |
+| Quitter une session | Non (rien n'est perdu, RG-14/34) |
+| Quitter / retour pendant un test | Oui : « Abandonner le test ? » |
+| Réinitialiser ma progression | Oui : « Réinitialiser ma progression ? » |
+| Changer objectif / filtres | Non |
+
+### 8.3 Cas limites (v1 conservés + visuels v2)
+| Cas | Comportement |
 |---|---|
-| Pool filtré vide | EmptyState « Aucun mot ne correspond à tes filtres » + « Réinitialiser les filtres » (Session, Apprendre) |
-| Pool < 10 | Session de k cartes, « Carte n / k » |
-| Les 200 mots vus / tous en boîte 5 | Sessions = 10 révisions normales ; aucun message spécial |
-| Objectif dépassé | « 15 / 10 », barre pleine, « Objectif atteint ✅ » |
-| Minuit pendant une session | Le compteur suit la date locale au moment du tap ; l'Accueil se recalcule au focus |
-| Lundi 00:00 avec l'onglet Test ouvert | Recalcul au focus / au retour au premier plan (`AppState`) |
-| Exactement 10 mots vus | Test disponible, 10 questions |
-| Fermeture de l'app pendant un test | Test non enregistré, toujours disponible |
-| Fermeture pendant une session | Cartes évaluées conservées, pas de reprise de session |
-| Données corrompues | Démarrage vierge, aucun message |
-| TTS indisponible (P2) | Bouton 🔊 sans effet, aucune erreur affichée |
-| Double tap rapide sur « Je savais » / « Suivant » / une option | Une seule action prise en compte |
-| Mot ou traduction long | Retour à la ligne, `display` réduit à `h1` si > 14 caractères (`adjustsFontSizeToFit` interdit pour garder la lisibilité ; utiliser la règle de longueur) |
-| Petit écran (≤ 640 pt de haut) | Écrans scrollables ; boutons d'action restent fixés en bas |
+| Pool filtré vide | EmptyState Vobi `search` « Aucun mot ne correspond à tes filtres » + « Réinitialiser les filtres » |
+| Objectif dépassé | « 15 / 10 », anneau plein `successBright`, « Objectif atteint ✅ » |
+| Série 0 | StreakChip éteinte (flamme grise) ; jamais de message culpabilisant |
+| Série vivante, pas encore pratiqué aujourd'hui (RG-46 cas « hier ») | Flamme allumée, message Vobi « Une carte aujourd'hui et la flamme continue » |
+| Session < 50 % « Je savais » | Pas de confettis, Vobi `hello`, « Chaque carte te rapproche du but. » |
+| Test raté | Pas de confettis, Vobi `retry`, ton encourageant |
+| Mot / traduction long | `wordXL` → 32/38 au-delà de 14 caractères ; retour à la ligne |
+| Petit écran (≤ 640 pt) | Contenu scrollable ; actions fixées en bas ; hero Accueil : Vobi 72 |
+| Police très agrandie | Grilles en 1 colonne ; les deux boutons d'évaluation passent l'un sous l'autre (« Je savais » en premier) |
+| Reste des cas v1 (minuit, lundi, fermeture, double tap, TTS, corruption) | Inchangés |
 
-### 5.5 Libellés de référence (récapitulatif)
-« Commencer une session » · « Retourner » · « Je savais » · « Je ne savais pas » · « Quitter » · « Session terminée » · « Nouvelle session » · « Accueil » · « Commencer le test » · « Suivant » · « Voir le résultat » · « Abandonner le test ? » · « Continuer le test » · « Abandonner » · « Réussi » · « À retravailler » · « Retour à l'accueil » · « Historique » · « Aucun test pour l'instant » · « Étudie encore {X} mots pour débloquer le test de la semaine » · « Test de la semaine terminé : {x}/{N} » · « Prochain test disponible lundi » · « Aucun mot ne correspond à tes filtres » · « Réinitialiser les filtres » · « Réinitialiser ma progression » · « Cette action est irréversible » · « Annuler » · « Réinitialiser » · « Données stockées uniquement sur cet appareil ».
+### 8.4 Libellés contractuels (inchangés, ne pas reformuler)
+« Commencer une session » · « Retourner » · « Je savais » · « Je ne savais pas » · « Quitter » · « Session terminée » (le « ! » est ajouté) · « Nouvelle session » · « Accueil » · « Commencer le test » · « Passer le test » · « Suivant » · « Voir le résultat » · « Abandonner le test ? » · « Continuer le test » · « Abandonner » · « Réussi » · « À retravailler » · « Retour à l'accueil » · « Historique » · « Aucun test pour l'instant » · « Étudie encore {X} mots pour débloquer le test de la semaine » · « Test de la semaine terminé : {x}/{N} » · « Prochain test disponible lundi » · « Aucun mot ne correspond à tes filtres » · « Réinitialiser les filtres » · « Réinitialiser ma progression » · « Cette action est irréversible » · « Annuler » · « Réinitialiser » · « Données stockées uniquement sur cet appareil » · « ✓ Bonne réponse ! » · « La bonne réponse était : {réponse} » · « Objectif atteint ✅ » · « Semaine {ww} – {yyyy} ».
+
+Note pour le Développeur/QA : les `testID` existants sont conservés ; les tests qui cherchent « Session terminée » doivent accepter « Session terminée ! » (recherche par regex ou `testID`).
+
+### 8.5 Ordre d'implémentation conseillé
+1. Tokens v2 (`tokens.ts` : couleurs, `categoryColors`, `depth`, `motion`, typographie) — aucun écran ne casse grâce aux clés héritées.
+2. Button 3D, Card, OptionButton, Chip, ProgressBar (composants existants).
+3. Nouveaux composants : Vobi, ProgressRing, StreakChip/WeekStrip, CategoryCard, FeedbackSheet, Confetti, hook `useReducedMotion`.
+4. Écrans dans l'ordre : Session → Test → Résultats → Accueil → Progrès → Apprendre/Test/Réglages.
+5. Passage QA visuel contre `docs/design/maquettes.html`.
 
 ---
 
-## 6. Points à remonter au PM
+## 9. Propositions hors spec (à valider par le PM / client — NON incluses dans la v2)
 
-1. **Onglet « Apprendre »** : absent de l'inventaire §5 de la spec ; ajouté comme écran d'entrée avec résumé des filtres et pédagogie. Il ne change aucune règle métier.
-2. **Format du résumé des filtres** (RG-53) : précisé en §4.1 (« Filtres : Voyage, A1 », « Filtres : 2 catégories, A1-A2 »).
-3. **Retournement à sens unique** de la Flashcard (§3.3) : interprétation de RG-31/32, à confirmer.
+| # | Proposition | Impact | Statut spec |
+|---|---|---|---|
+| P-01 | **XP** : +10 XP par carte « Je savais », +5 par carte évaluée, +50 pour un test réussi ; affiché dans le header | Nouvelle donnée persistée + règles | Contredit « gamification avancée (XP) hors périmètre » → décision client requise |
+| P-02 | **Niveaux d'apprenant** (« Explorateur → Bilingue ») basés sur les mots maîtrisés (paliers 25/50/100/150/200) | Calcul pur sur RG-41, pas de nouvelle donnée | Nouvelle mécanique |
+| P-03 | **Badges** (1re session, série de 7 jours, catégorie maîtrisée 20/20, test 100 %) avec écran « Trophées » | Persistance des badges obtenus | Hors périmètre v1 (badges exclus) |
+| P-04 | **Combo intra-session** (« 3 d'affilée ! ✨ » après 3 « Je savais » consécutifs) | Affichage uniquement | Nouvelle mécanique (sans effet métier) |
+| P-05 | **Gel de série** (1 jour manqué toléré par semaine) | Modifie RG-46 | Changement de règle métier |
+| P-06 | **Chemin des catégories** (parcours visuel façon « carte » à la place de la grille Progrès) | UI seulement | Nouvelle présentation |
+| P-07 | **Police Nunito** | `expo-font` + `@expo-google-fonts/nunito` | Nouvelle dépendance [P1-dep] |
+| P-08 | **`react-native-svg`** pour Vobi vectoriel et l'anneau d'objectif | Dépendance Expo officielle | [P1-dep] |
+| P-09 | **Sons de feedback** (ding / plop, coupés par le mode silencieux) | `expo-audio` + fichiers audio | [P1-dep], P2 |
+| P-10 | **Retour haptique riche** (`expo-haptics`) au lieu de `Vibration` | Dépendance Expo officielle | [P1-dep] |
+| P-11 | **Mode sombre** dérivé de la palette (fond `#140D2E`) | Thème complet | Hors périmètre v1 |
+| P-12 | **Icône d'app et splash** avec Vobi sur fond Grape | Assets uniquement | À produire après validation de la DA |
 
-## Validation PM / Client
-✅ Design approuvé. Points du §6 acceptés : onglet « Apprendre » (point d'entrée des sessions + filtres), format du résumé des filtres tel que proposé, Flashcard non retournable une fois révélée.
+---
+
+## 10. Points à remonter au PM
+
+1. Aucune règle métier n'est modifiée ; WeekStrip et message « série vivante » exploitent les données existantes (RG-45/46/48).
+2. La police v2 par défaut est la police système ; Nunito (P-07) est souhaitable pour la cohérence avec les maquettes.
+3. « Session terminée ! » ajoute un point d'exclamation au libellé v1 (impact tests : §8.4).
+4. Valider la liste §9 (en particulier P-01/P-03, explicitement hors périmètre v1).
+
+## Validation
+- v1 : ✅ approuvée (PM/Client), implémentée.
+- **v2 : en attente de validation client** sur la base de `docs/design/maquettes.html`. L'implémentation ne commence qu'après validation.
