@@ -45,3 +45,8 @@ Une application mobile qui :
 ✅ **Approuvée** (rôle Client) pour la v1, sur la base du rapport QA (aucun bug critique ou majeur ouvert).
 Reste à faire avant publication sur les stores : un passage sur appareil Android et iOS réel (mode avion, arrêt forcé, son).
 Points mineurs connus et acceptés : RT-02 (boutons grisés 300 ms au retournement), RT-03 (avertissement d'hydratation web en ouvrant `/session` directement).
+
+## Approbation — direction artistique v2
+✅ **Approuvée** (rôle Client) : DA v2 intégrée, recette QA « prête » (aucun bug critique ou majeur ouvert).
+Points mineurs connus et acceptés : RT2-01 (boutons d'évaluation sur 2 lignes sous ~340 pt), RT2-02 (tap ignoré juste après une garde d'arrivée).
+Toujours à faire avant publication : passage sur appareils iOS et Android réels.

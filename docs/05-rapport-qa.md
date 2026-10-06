@@ -385,3 +385,52 @@ Conditions pour passer à « prêt » :
 2. Idéalement dans le même lot : V2-02 (« Réduire les animations ») et V2-03 (bouton sur 2 lignes).
 
 V2-04 à V2-07 et les observations peuvent suivre dans une version corrective. La réserve « appareils réels » (§7.5) reste valable ; il faut y ajouter la vérification de V2-03 avec SF Pro et Roboto.
+
+### 8.8 Re-test v2
+
+Commit re-testé : `2edae16`, « Corrections recette design v2 (V2-01 à V2-07) ». Re-test fait selon `.claude/agents/qa.md`, étape 7.
+
+**Exécution**
+
+| Élément | Résultat |
+|---|---|
+| Suite Jest | **20 suites, 191 tests verts.** Aucun `test.failing` restant : le test V2-01 est devenu un test normal. |
+| Tests modifiés par le Développeur | Relus : rien n'a été affaibli. Les ajouts de `waitGuard` modélisent une réponse délibérée après le verrou. Les autres changements sont les espaces insécables dans les chaînes attendues. |
+| `tsc --noEmit` | OK. |
+| Fuseaux horaires | Tests du domaine verts sous `Pacific/Auckland` et `America/Sao_Paulo`. |
+| Web | Export statique + Chromium/Playwright à **390×844, 360×740 et 320×568, avec et sans `prefers-reduced-motion`** (6 combinaisons, parcours complet à chaque fois). **0 erreur console, 0 requête externe.** `dist/` et les temporaires ont été supprimés. |
+
+**Statut des corrections** (résultat identique dans les 6 combinaisons, sauf mention)
+
+| Point | Statut | Vérification |
+|---|---|---|
+| **V2-01 (majeur)** | **Corrigé** | Double clic au centre de « Suivant » à chaque question : **0 réponse à l'aveugle sur 15**, dans les 6 combinaisons (5 sur 5 à 320×568 avant correction). Les options gardent leur apparence pendant le verrou, donc sans clignotement. |
+| Garde d'arrivée (nouveau) | **OK** | Un double clic sur le dernier « Je savais » ou sur « Voir le résultat » laisse l'écran de résultat affiché. Un tap normal sur « Accueil » environ 410 ms après l'arrivée fonctionne. |
+| V2-02 confettis | **Corrigé** | Les confettis ne recouvrent **aucun** texte (titre, sous-titre, semaine, score, seuil) : 0 sur 24 en mode animé, 0 sur 10 en mode réduit, à chaque échantillon entre 0 et 2 s. Ils restent de part et d'autre de Vobi. Cosmétique : ceux du haut sont légèrement rognés par le bord supérieur de la zone de Vobi. |
+| V2-03 « ✗ Je ne savais pas » | **Corrigé à 390 et 360 pt** | Une seule ligne : 205 / 141 px à 390 pt, 190 / 126 px à 360 pt. À 320 pt, voir RT2-01. |
+| V2-04 contraste | **Corrigé** | Fond de tuile mesuré `rgba(255,255,255,0.1)`, soit un contraste blanc de **4,90:1**. |
+| V2-05 ponctuation | **Corrigé** | « 10 cartes ! » et « en anglais ? » ne se coupent plus avant la ponctuation (vérifié à 320 et 360). Un garde-fou automatique existe : `typographie.test.ts`. |
+| V2-06 | **Corrigé** | Test à 10/10 : « Continue tes sessions pour garder ce niveau. » ; avec des erreurs, le texte reste « Ces mots reviendront… ». |
+| V2-07 / RT-03 (#418) | **Corrigé** | Chargement direct puis rechargement de `/session` et `/test-run` : 0 erreur d'hydratation. |
+| Accessibilité web | **Corrigé** | Plus aucun emoji de Vobi dans l'arbre d'accessibilité de Chromium (`aria-hidden`). |
+| « Réduire les animations » | **OK** | Le réglage est mis en cache au niveau du module ; les confettis immobiles, le fondu et le score final direct sont vérifiés en mode réduit. |
+
+**Non-régression et usage rapide normal**
+
+- **Verrous existants** : BUG-01 (double clic sur « Retourner », moitié droite et moitié gauche : compteur 1/10, aucune évaluation) et BUG-02 (une seule évaluation, carte suivante au recto) tiennent toujours, dans les 6 combinaisons.
+- **Usage rapide de la session** : retourner puis évaluer toutes les 350 ms, sur 8 cartes : **0 tap perdu**.
+- **Usage rapide du test** : 10 questions avec « Suivant » puis réponse à +320 ms : **aucune réponse perdue**.
+- **Écran neutre avant tirage** :
+  - navigation dans l'app (Accueil → session, « Nouvelle session », onglet Test → test) : **0 image neutre observée**, le contenu s'affiche en 53 à 101 ms ;
+  - chargement direct d'URL sur le web : fond uni pendant environ 60 ms, puis contenu à environ 140 ms, sans aucun saut de contenu ;
+  - le clignotement n'est donc **pas gênant**.
+
+**Nouveaux constats** (aucun bloquant)
+
+- **RT2-01 (cosmétique, 320 pt seulement)** : la largeur des boutons suit maintenant le libellé (`src/app/session.tsx`, `evalButton`). À 320 pt, « ✗ Je ne savais pas » (167 px) **et** « ✓ Je savais » (109 px) passent tous deux sur 2 lignes. Avant la correction, seul le premier passait sur 2 lignes. Les cibles restent à 60 pt de haut. C'est un format rare (iPhone SE de 1re génération, petits Android). Piste : revenir à `flex: 1` sous 340 pt.
+- **RT2-02 (mineur, dans la lignée de RT-01)** : un tap ignoré par la garde d'arrivée arme quand même la garde de 400 ms du `Button` (`useArrivalGuard` est appelé dans `onPress`, après la garde du bouton). Exemple : double clic sur le dernier « Je savais », puis un tap délibéré sur « Accueil » environ 350 ms plus tard ; ce tap est ignoré. Reproduit sur le web : un tap à +100 ms puis un autre à +450 ms laissent l'écran sur le résultat, alors que des taps à +100 ms puis +600 ms fonctionnent. C'est rare, puisqu'il faut le double clic plus un tap immédiat, et sans effet sur les données. Piste : laisser la garde d'arrivée passer avant celle du bouton.
+- **Cosmétique, 320 pt** : la 7e pastille de la semaine déborde de la tuile « Série » de l'Accueil, et l'onglet « Apprendre » est tronqué en « Appren… ».
+
+**Verdict final : prêt.** Aucun bug critique ni majeur ouvert. V2-01 à V2-07 sont corrigés, sans régression fonctionnelle ni gêne pour un usage rapide normal. RT2-01, RT2-02 et les points cosmétiques à 320 pt peuvent suivre dans une version corrective.
+
+**Réserve maintenue** (§7.5) : le passage sur appareil Android **et** iOS reste non testable ici (mode avion, arrêt forcé, VoiceOver/TalkBack, « Réduire les animations » natif, rendu de V2-03 avec SF Pro et Roboto). Il doit être fait avant la remise au client.
