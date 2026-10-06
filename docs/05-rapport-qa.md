@@ -230,3 +230,158 @@ Commit re-testé : `53c78eb`, « Corrections post-QA ». Re-test fait selon `.cl
 
 ### RT-01 — corrigé
 Le bouton « Retourner » est désactivé pendant le verrou (`src/app/session.tsx`), il n'arme donc plus la garde de 400 ms du `Button`. Le test RT-01 est passé de `test.failing` à `test` : 150/150 tests verts.
+
+---
+
+## 8. Recette design v2
+
+Commit recetté : `778466e`, « Intègre la direction artistique v2 ». Références : `03-design.md` v2, `design/maquettes.html` et `apercu-ecrans.png` (cible), `design/rendu-app-v2.png`, `02-spec-pm.md` (règles inchangées) et la section « Design v2 » de `04-implementation.md`.
+
+### 8.1 Exécution
+
+| Élément | Résultat |
+|---|---|
+| Suite Jest | **18 suites, 182 tests verts**, soit les 174 tests du Développeur et 8 tests QA ajoutés dans `src/__tests__/qa-design-v2.test.tsx`. **1 `test.failing`** reproduit V2-01. |
+| `tsc --noEmit` | OK. |
+| Fuseaux horaires | Tests du domaine (dont `weekDays`) verts sous `Pacific/Auckland` et `America/Sao_Paulo`. |
+| Web (export statique + Chromium/Playwright) | Parcours complets à **390×844** et **360×740**, plus des mesures à 375×667, 360×640 et 320×568, avec et sans `prefers-reduced-motion`. Parcours couverts : accueil vide, session (recto, verso, < 50 % et ≥ 50 %), test réussi et raté, test déjà fait, accès direct aux routes, filtres restrictifs (Voyage + A1, k = 5), dernier élément verrouillé, réinitialisation. **0 requête externe.** Les seules erreurs console sont celles de RT-03 (voir V2-07). `dist/` et les temporaires (Playwright, build v1 de comparaison) ont été supprimés. |
+| Appareils réels | Toujours **non testable ici** : police système iOS/Android réelle, TalkBack/VoiceOver, « Réduire les animations » natif. |
+
+### 8.2 Non-régression fonctionnelle (relecture adversariale du diff)
+
+- **Règles métier** : `src/domain/` ne reçoit qu'un ajout pur, `getWeekDays` et `countActiveDaysThisWeek`, qui ne fait que de l'affichage. Le tirage, les boîtes, la série, le test et la persistance sont inchangés. Le store et les sélecteurs existants sont intacts ; seul `useWeekDays` est ajouté.
+- **Verrous** : `useActionGuard`, `handledIndex`, `answeredIndex`, `finished` et la garde de 400 ms du `Button` sont conservés. Vérifié à nouveau sur le web :
+  - BUG-01 : un double clic sur la moitié droite puis sur la moitié gauche de « Retourner » ne déclenche aucune évaluation ; le compteur reste à 1/10.
+  - BUG-02 : un double clic sur « Je savais » donne une seule évaluation, et la carte 2 reste au recto.
+  - RT-01 : la carte se retourne au 2e tap une fois le verrou expiré.
+  - BUG-04 : l'accès direct à `/test-run` quand le test est déjà fait redirige vers `/test`.
+  - BUG-05 : le toast « Progression réinitialisée » est visible en haut, hors du défilement.
+  - Persistance : OK après rechargement.
+- **Libellés contractuels** (§8.4 du design) : présents. Le compteur du test devient « i/N », lu « Question i sur N » ; le changement est autorisé par le design §5.7.
+- **Nouveau défaut introduit par la refonte** : V2-01, ci-dessous.
+
+### 8.3 Bugs
+
+#### V2-01 — Sur petit écran, un double tap sur « Suivant » répond à l'aveugle à la question suivante du test — **majeur** (régression v2)
+
+- **Fichiers** :
+  - `src/app/test-run.tsx:173-184` : le `FeedbackSheet` n'est rendu qu'après une réponse et disparaît au tap sur « Suivant ». La zone de pied de 76 pt, réservée en permanence en v1, n'existe plus. Le `ScrollView` reprend donc la place, et les options C/D remontent sous le doigt.
+  - `src/app/test-run.tsx:81-92` : `choose()` n'a aucun verrou après `next()`. Les gardes existantes (`answeredIndex`, la garde de 400 ms du `Button`) protègent la même question et le même bouton, pas la question suivante.
+- **Reproduction** (web, Playwright) : 10 mots vus → Test → répondre à une question → double clic au centre de « Suivant ».
+- **Attendu** : la question suivante s'affiche sans réponse (RG-66 : réponse délibérée et non modifiable ; design §5.4 : « une seule action prise en compte »).
+- **Obtenu** : le 2e clic tombe sur l'option C ou D de la question suivante, qui est enregistrée.
+
+  | Viewport | v2 | v1 (même scénario) |
+  |---|---|---|
+  | 320×568 | 5 questions répondues à l'aveugle sur 5 | 0 sur 9 |
+  | 360×640 | 1 sur 9 (questions à libellé long) | 0 sur 9 |
+  | 375×667 et 390×844 | 0 sur 9 | 0 sur 9 |
+
+- **Impact** : une réponse fausse est enregistrée dans le test hebdomadaire, qui n'a **qu'un essai par semaine**. Elle compte dans le score et dans « Mots à revoir », et fait **redescendre le mot en boîte 0** (RG-69). C'est la même classe de défaut que BUG-01, déjà classé majeur. 360×640 est un format Android courant.
+- **Test** : `qa-design-v2.test.tsx`, « V2-01 » (`test.failing`). Le test encode la correction par verrou ; si la correction passe par la mise en page, il faudra l'adapter.
+- **Piste de correction** : poser le verrou `useActionGuard` (300 ms) dans `next()` et le vérifier dans `choose()`, comme `evaluate()` en session. On peut aussi réserver la hauteur du bandeau sous les options après « Suivant ».
+- **Effet de bord de la même mise en page (mineur)** : à 360×640, le bandeau masque l'option C/D colorée en vert. La bonne réponse reste écrite dans le bandeau, mais le retour visuel « bonne réponse en vert » (RG-66) n'est visible qu'en faisant défiler.
+
+#### V2-02 — « Réduire les animations » : 10 confettis fixes restent en permanence derrière les textes — **mineur**
+
+- **Fichiers** : `src/components/Confetti.tsx:42` et `:93-95` (positions finales `fall × hauteur + 40`, sans fondu en mode réduit), `src/app/test-result.tsx:41`, `src/app/session-result.tsx:178`.
+- **Reproduction** (web, `prefers-reduced-motion: reduce`) : réussir le test, ou finir une session avec ≥ 50 % de « Je savais ».
+- **Attendu** : une célébration statique qui ne gêne pas la lecture (design §4.12 et §7).
+- **Obtenu** : les confettis restent indéfiniment derrière « Semaine 41 – 2026 », derrière le score « 10 / 10 » (un rectangle Grape sous le « 0 ») et derrière le sous-titre « Excellent rythme… ». Contrastes calculés à ces endroits : `ink` sur `primary` **2,91:1** ; `inkMuted` sur `flame` **2,48:1**, sur `successBright` **3,12:1**, sur `#1C8CEB` **1,99:1**. Sans réduction, le même recouvrement existe mais ne dure qu'environ 1,5 s (2 à 5 confettis passent sur le titre entre 300 et 1 500 ms), ce qui est cosmétique.
+- **Qualification de l'écart signalé par le Développeur** (« les confettis semblent recouvrir le titre ») : l'ordre de dessin est **correct**, puisque le calque est en `zIndex 0` et le contenu en `zIndex 1` (vérifié dans le DOM). Les confettis passent donc **derrière** le titre. Cependant, le texte n'a pas de fond, si bien qu'ils traversent visuellement les lettres. C'est acceptable en mode animé, mais pas avec « Réduire les animations ».
+- **Piste de correction** : en mode réduit, placer les 10 confettis dans la bande au-dessus de Vobi ou sur les bords (x < 12 % ou x > 88 %), ou les fondre après 1,5 s.
+
+#### V2-03 — « ✗ Je ne savais pas » passe sur 2 lignes, avec « pas » seul sur la 2e — **mineur** (écart signalé par le Développeur, confirmé)
+
+- **Fichiers** : `src/app/session.tsx:216-224` et `src/components/Button.tsx:115` (`numberOfLines={2}`, 17 pt 900, padding horizontal 10 + bordure 2).
+- **Mesure** (web) :
+  - à 390 pt, le texte demande 157 px sur une seule ligne, pour 149 px disponibles ;
+  - à 360 pt, il reste 134 px disponibles ; le passage à la ligne est quasi certain aussi avec Roboto Black sur Android ;
+  - sur iPhone, avec SF Pro Heavy, le passage à la ligne à 390 pt est probable, mais à confirmer sur appareil.
+- **Impact** : visuel uniquement. Les deux boutons gardent la même hauteur (60), et la cible ainsi que le libellé d'accessibilité sont intacts. C'est un écart avec la maquette, où le texte tient sur une ligne. Le libellé est contractuel et ne peut pas être raccourci.
+- **Piste de correction** : boutons d'évaluation en `size="md"` (16 pt) avec `paddingHorizontal: 6`, ou `adjustsFontSizeToFit` avec `minimumFontScale: 0.85` et `numberOfLines={1}` sur ce seul bouton.
+
+#### V2-04 — Texte blanc des mini-tuiles du hero Progrès sous le seuil AA — **mineur**
+
+- **Fichiers** : `src/app/(tabs)/progress.tsx:151-154` et `src/theme/tokens.ts:50`.
+- **Constat** : texte blanc sur `onPrimaryTile` (blanc à 16 % sur `primary`, soit `#835BF7`) = **4,37:1**, pour « Mots vus », « Mots maîtrisés » (12 pt) et « / 200 » (13 pt). Le minimum AA pour du texte normal est 4,5:1.
+- **Piste de correction** : réduire l'opacité de la tuile à 0,10 (environ 4,9:1), ou utiliser `primaryLip` comme fond de tuile.
+
+#### V2-05 — Ponctuation française : « ! » et « ? » isolés en début de ligne — **cosmétique**
+
+- **Fichiers** : `src/app/(tabs)/index.tsx:87-91`, où l'espace avant « ! » est un `{' '}` ordinaire, et `src/app/test-run.tsx:143`.
+- **Constat** : la tuile Objectif affiche « Plus que 10 cartes » puis « ! » seul sur la ligne suivante (390 et 360 pt). À 360 pt, la consigne affiche « …de ce mot » puis « ? » seul.
+- **Piste de correction** : espace insécable ` ` (ou ` `) avant « ! », « ? » et « : », dans ces chaînes et dans `messages.ts`.
+
+#### V2-06 — Résultat du test sans erreur : « Ces mots reviendront plus souvent… » — **cosmétique**
+
+- **Fichier** : `src/app/test-result.tsx:101-103`.
+- **Constat** : la phrase s'affiche sous « Mots à revoir (0) » / « Aucune erreur, bravo ! 🎉 » alors qu'il n'y a aucun mot.
+- **Piste de correction** : masquer la phrase quand `missed.length === 0`. C'est conforme au design §5.8 point 6, qui suppose k > 0.
+
+#### V2-07 — Erreur React #418 au chargement direct de `/test-run` sur le web — **mineur, web uniquement, antérieure à la v2** (écart signalé par le Développeur, qualifié)
+
+- **Comparaison v1 / v2** : j'ai reconstruit la v1 (`HEAD~1`) pour comparer, avec le même scénario (10 mots vus, puis chargement direct). L'erreur #418 apparaît **à l'identique en v1 et en v2**, sur `/test-run` comme sur `/session`. Toutes les autres routes chargées directement (`/`, `/test`, `/progress`, `/settings`, `/test-result`, `/session-result`) se chargent sans erreur, avec redirection vers `/` pour les écrans de résultat.
+- **Qualification** : même famille que RT-03 (tirage aléatoire au montage, rendu statique différent du client). Ce n'est pas une régression v2, et il n'y a aucun impact sur mobile. Il suffit d'étendre RT-03 à `/test-run`.
+
+### 8.4 Accessibilité
+
+| Point | Statut | Preuve |
+|---|---|---|
+| Vobi décoratif | OK (natif) | `accessible={false}` + `no-hide-descendants` + `accessibilityElementsHidden` (`Vobi.tsx`). Test QA : le Vobi du bandeau du test est absent de l'arbre accessible. Les messages de Vobi sont du vrai texte (bulle). **Web** : les emoji de Vobi (« ✦ 👋 ») apparaissent dans l'arbre d'accessibilité de Chromium, car react-native-web n'applique pas `accessibilityElementsHidden`. Hors périmètre mobile ; `aria-hidden` en plus réglerait le cas. |
+| Confettis non annoncés | OK | Masqués aux lecteurs d'écran (test QA et test du Développeur), `pointerEvents="none"`. |
+| Annonces v1 du test | OK | « Bonne réponse ! » et « La bonne réponse était : … » sont toujours annoncées, 10 annonces sur 10 (test QA). Score du résultat lu en entier : « Score : 7 sur 10, 70 pour cent, Réussi ». |
+| « Réduire les animations » | OK, avec la réserve V2-02 | Web en mode réduit : 10 confettis immobiles ; retournement en fondu ; bandeau en fondu ; score final affiché directement (« 10 / 10 » dès 130 ms) ; pas de pop ni de secousse ; rebond de Vobi et des onglets coupé. **Observation** : `useReduceMotion` vaut `false` jusqu'à la résolution asynchrone de `isReduceMotionEnabled()`. Au tout premier rendu, `CountUp` affiche 0 et le rebond de Vobi démarre, pendant 1 à 2 images, avant de basculer. C'est imperceptible en pratique ; une mise en cache du réglage au niveau du module supprimerait ce flash. |
+| Cibles ≥ 44 pt | OK, avec 1 réserve antérieure | Tous les boutons, chips, onglets, ⚙️, 🔊, options et « ✕ Quitter » (68 × 44) font au moins 44 pt. Liens texte : « Tout sélectionner » mesure 22 pt de haut + `hitSlop` 12, soit 46 pt. « Modifier » (Accueil) mesure 18 pt + 12, soit **42 pt**, comme en v1 : réserve antérieure, à passer à `hitSlop` 14. |
+| Lecteur d'écran, carte « Test disponible » de l'Accueil | Observation, antérieure | La carte pressable (rôle bouton) contient le bouton « Passer le test ». Sur iOS, VoiceOver ne voit que la carte, qui mène à l'onglet Test, d'où l'on peut lancer le test. Même structure en v1 ; à valider sur appareil. |
+
+### 8.5 Contrastes des couples texte/fond réellement utilisés (WCAG 2.1, calculés)
+
+| Couple | Ratio | Couple | Ratio |
+|---|---|---|---|
+| `ink` / `bg` · `surface` | 15,77 · 17,02 | blanc / `primary` (boutons, hero) | 5,85 |
+| `inkMuted` / `surface` · `bg` · `surfaceAlt` | 6,98 · 6,46 · 5,96 | blanc / `success` (« Je savais », « Suivant ») | 4,99 |
+| `inkMuted` / `sunSoft` · `successSoft` | 6,37 · 6,29 | blanc / `danger` (« Suivant », « Réinitialiser ») | 4,59 |
+| `danger` / blanc (« ✗ Je ne savais pas ») | 4,59 | `primary` / `primarySoft` (onglet actif) | 4,95 |
+| `successInk` / `successSoft` (bandeau, badge) | 5,63 | `dangerInk` / `dangerSoft` | 6,78 |
+| `sunInk` / `sunSoft` (test verrouillé) | 7,74 | `ink` / `sun` (bouton Sun) | 11,01 |
+| `flameInk` / `flameSoft` · blanc (série) | 5,17 · 5,73 | `primaryInk` / `primarySoft` (badges) | 9,66 |
+| `ink` de catégorie / `soft` (10 catégories) | 6,90 à 9,31 | blanc / `ink` (toast info) | 17,02 |
+| **blanc / tuile du hero Progrès** | **4,37 (V2-04)** | `disabledText` / `disabledBg` | 4,34 (exempté : inactif) |
+| `inkMuted` à 75 % (options après réponse) | 3,85 (exempté : inactif, conforme au design §4.10) | | |
+
+**Éléments graphiques** :
+
+- Les barres de catégorie (`base` sur blanc, 3,34 à 5,59) respectent le seuil de 3:1.
+- Les pastilles de jours actifs (`flame` : 2,82 sur blanc, 2,41 sur `surfaceAlt`) et l'anneau atteint (`successBright` : 2,24) sont **sous 3:1**. L'information est doublée par du texte (« 1 jour de suite », « 10 / 10 ») et par le libellé d'accessibilité : acceptable, mais à noter pour le Designer.
+
+### 8.6 Conformité visuelle aux maquettes
+
+Conforme sur l'ensemble des écrans et des états :
+
+- **Couleurs et formes** : tokens Grape, Sun, Flame, Mint et Berry ; boutons et cartes 3D (lèvre, enfoncement) ; hero Grape avec bulle.
+- **Accueil** : anneau d'objectif (« 15/10 » plein), série éteinte à 0 (flamme grise, « Lance ta série aujourd'hui »), pastilles de la semaine, carte « Test de la semaine » dans ses trois états (verrouillé, disponible, terminé), filtres actifs dans le hero (« 🎛️ Filtres : Voyage, A1 · Modifier »).
+- **Session** : chip de catégorie colorée, verso conforme, indices de Vobi.
+- **Session et test, les deux résultats** : Vobi `correct`/`hello`/`win`/`retry`, compteurs animés.
+- **Progrès** : hero et cartes de catégorie.
+- **Test** : bandeau vert ou rouge, options A à D.
+- **Réglages** : chips avec emoji, aide « Garde au moins un élément sélectionné. » sur le dernier niveau, toast.
+- **États limites** : Progrès vide, historique vide et Apprendre avec k = 5 (« Ta session contiendra 5 cartes. »).
+
+Écarts restants :
+
+- V2-02, V2-03 et V2-05 ci-dessus.
+- Police système au lieu de Nunito : décision client, rendu plus large ; à 360 pt, « OBJECTIF DU JOUR » passe sur 2 lignes.
+- « % » des cartes de catégorie à droite de la barre : écart assumé par le Développeur, lisible et sans coupure de mot.
+- Le pool vide (Apprendre et session) reste inatteignable avec la banque actuelle, comme en v1 ; le code est revu.
+
+### 8.7 Verdict
+
+**Non prêt en l'état, mais la correction est courte.** La refonte ne modifie aucune règle métier et ne rouvre aucun des bugs BUG-01 à BUG-05 ni RT-01. La qualité visuelle est au niveau des maquettes. En revanche, **V2-01 (majeur)** réintroduit, dans le test hebdomadaire et sur petit écran, le défaut « double tap = réponse à l'aveugle ». Sa conséquence est irréversible pour la semaine : un seul essai, et le mot repasse en boîte 0.
+
+Conditions pour passer à « prêt » :
+
+1. Corriger V2-01, retirer `.failing` du test correspondant, puis re-tester à 320×568 et 360×640.
+2. Idéalement dans le même lot : V2-02 (« Réduire les animations ») et V2-03 (bouton sur 2 lignes).
+
+V2-04 à V2-07 et les observations peuvent suivre dans une version corrective. La réserve « appareils réels » (§7.5) reste valable ; il faut y ajouter la vérification de V2-03 avec SF Pro et Roboto.
