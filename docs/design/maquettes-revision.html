@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VocaBoost — Maquettes v1.1 Révision</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ---- Tokens VocaBoost v2 (identiques à docs/03-design.md §3) ---- */
+  --bg:#F7F5FF; --surface:#FFFFFF; --surface-alt:#EFEBFA; --border:#E3DEF5; --border-strong:#8F88AD;
+  --ink:#1E1442; --muted:#5B5577; --on-color:#FFFFFF;
+  --primary:#6B3CF5; --primary-lip:#4B22C2; --primary-soft:#EFE9FF; --primary-ink:#3D1A9E;
+  --sun:#FFC83D; --sun-lip:#E0A21A; --sun-soft:#FFF4D6; --sun-ink:#6B4500;
+  --flame:#FF6B4A; --flame-soft:#FFF0EB; --flame-ink:#B83A1E;
+  --success:#0B7F5E; --success-lip:#075C44; --success-bright:#1FC496; --success-soft:#E3F8EF; --success-ink:#0B6E52;
+  --danger:#D9364A; --danger-lip:#A8202F; --danger-soft:#FFE8EA; --danger-ink:#9E1B30;
+  --disabled-bg:#ECE9F5; --disabled-text:#6E6890; --disabled-lip:#D9D4EA;
+  --cheek:#FF8FA3;
+  --font:'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{font-family:var(--font);color:var(--ink);font-weight:600;-webkit-font-smoothing:antialiased}
+.page{max-width:1900px;margin:0 auto;padding:56px 56px 80px}
+section{margin-top:72px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+.sec-num{font-weight:900;font-size:15px;color:var(--primary);background:var(--primary-soft);border-radius:999px;padding:4px 12px}
+h2.sec{font-size:32px;font-weight:900;letter-spacing:-.3px}
+.sec-sub{color:var(--muted);font-size:16px;font-weight:600;margin-top:4px;max-width:900px;line-height:1.5}
+
+/* ---------- Hero de la planche ---------- */
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:40px;align-items:center;background:var(--primary);border-radius:40px;padding:56px 64px;color:#fff;position:relative;overflow:hidden;box-shadow:0 10px 0 var(--primary-lip)}
+.hero .kicker{display:inline-block;background:var(--sun);color:var(--ink);font-weight:900;font-size:14px;border-radius:999px;padding:6px 14px;letter-spacing:.6px;text-transform:uppercase}
+.hero h1{font-size:72px;line-height:1;font-weight:900;margin:20px 0 12px;letter-spacing:-1.5px}
+.hero h1 span{color:var(--sun)}
+.hero .tagline{font-size:26px;font-weight:800;line-height:1.3;max-width:700px}
+.hero .lead{font-size:17px;line-height:1.6;max-width:680px;margin-top:16px;color:#fff;opacity:.95}
+.hero .stage{display:flex;justify-content:center;align-items:flex-end;gap:8px;position:relative;height:300px}
+.hero .bubble-say{position:absolute;top:10px;right:10px;background:#fff;color:var(--ink);font-weight:900;font-size:20px;border-radius:22px;padding:14px 20px;box-shadow:0 5px 0 var(--primary-lip)}
+.hero .bubble-say:after{content:'';position:absolute;left:28px;bottom:-10px;width:20px;height:20px;background:#fff;transform:rotate(45deg);border-radius:3px}
+.blob{position:absolute;border-radius:50%;opacity:.16;background:#fff}
+
+.pill-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.trait{background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3);border-radius:999px;padding:8px 16px;font-weight:800;font-size:15px}
+
+/* ---------- Cartes de la planche ---------- */
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.panel{background:var(--surface);border:2px solid var(--border);border-radius:28px;padding:28px;box-shadow:0 5px 0 var(--border)}
+.panel h3{font-size:20px;font-weight:900;margin-bottom:12px}
+.panel p,.panel li{font-size:15px;line-height:1.55;color:var(--muted);font-weight:600}
+.panel ul{padding-left:18px}
+.panel li+li{margin-top:6px}
+.keep{color:var(--success-ink)} .drop{color:var(--danger-ink)}
+.tag{display:inline-block;font-size:12px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;border-radius:8px;padding:3px 8px;margin-bottom:10px}
+.tag.k{background:var(--success-soft);color:var(--success-ink)} .tag.d{background:var(--danger-soft);color:var(--danger-ink)} .tag.p{background:var(--primary-soft);color:var(--primary-ink)}
+
+/* ---------- Palette ---------- */
+.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.sw{border-radius:22px;overflow:hidden;background:#fff;border:2px solid var(--border);box-shadow:0 4px 0 var(--border)}
+.sw .chip{height:96px;display:flex;align-items:flex-end;padding:10px 12px;font-weight:900;font-size:14px}
+.sw .meta{padding:10px 12px 12px;font-size:13px;line-height:1.45;color:var(--muted)}
+.sw .meta b{display:block;color:var(--ink);font-size:14px;font-weight:900}
+.sw .aa{display:inline-block;margin-top:4px;font-size:11px;font-weight:900;background:var(--surface-alt);color:var(--ink);padding:2px 6px;border-radius:6px}
+.cats{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:20px}
+.cat{border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 0 rgba(30,20,66,.08)}
+.cat .top{display:flex;align-items:center;gap:10px}
+.cat .em{width:40px;height:40px;border-radius:14px;background:#fff;display:grid;place-items:center;font-size:22px;flex:none}
+.cat .nm{font-weight:900;font-size:15px;line-height:1.2}
+.cat .hex{font-size:12px;font-weight:800;opacity:.95}
+.cat .bar{height:10px;border-radius:999px;background:#fff;overflow:hidden}
+.cat .bar i{display:block;height:100%;border-radius:999px}
+
+/* ---------- Typo ---------- */
+.type-row{display:grid;grid-template-columns:170px 1fr 220px;align-items:baseline;gap:20px;padding:14px 0;border-bottom:2px dashed var(--border)}
+.type-row:last-child{border-bottom:0}
+.type-row .tk{font-weight:900;color:var(--primary);font-size:14px}
+.type-row .spec{font-size:13px;color:var(--muted);text-align:right}
+
+/* ---------- Composants ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;padding:0 20px;border-radius:16px;font-family:var(--font);font-weight:900;font-size:17px;letter-spacing:.1px;background:var(--primary);color:#fff;box-shadow:0 4px 0 var(--primary-lip);border:0;white-space:nowrap;position:relative}
+.btn.md{height:48px;font-size:16px;border-radius:14px}
+.btn.sm{height:44px;font-size:15px;border-radius:14px;padding:0 16px}
+.btn.secondary{background:#fff;color:var(--primary);box-shadow:0 4px 0 var(--border);border:2px solid var(--border)}
+.btn.success{background:var(--success);box-shadow:0 4px 0 var(--success-lip)}
+.btn.danger{background:var(--danger);box-shadow:0 4px 0 var(--danger-lip)}
+.btn.sun{background:var(--sun);color:var(--ink);box-shadow:0 4px 0 var(--sun-lip)}
+.btn.ghost-danger{background:#fff;color:var(--danger);border:2px solid var(--border);box-shadow:0 4px 0 var(--border)}
+.btn.disabled{background:var(--disabled-bg);color:var(--disabled-text);box-shadow:0 4px 0 var(--disabled-lip)}
+.btn.pressed{transform:translateY(4px);box-shadow:0 0 0 var(--primary-lip)}
+.btn.full{width:100%}
+.comp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 24px;align-items:start}
+.comp-cell{display:flex;flex-direction:column;gap:10px}
+.comp-cap{font-size:13px;color:var(--muted);font-weight:700}
+.comp-cap b{color:var(--ink);font-weight:900}
+
+.fchip{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:999px;font-weight:800;font-size:15px;background:#fff;border:2px solid var(--border);box-shadow:0 3px 0 var(--border);color:var(--ink)}
+.fchip.on{background:var(--primary-soft);border-color:var(--primary);color:var(--primary-ink);box-shadow:0 3px 0 var(--primary)}
+
+.opt{display:flex;align-items:center;gap:14px;min-height:60px;padding:10px 16px;border-radius:18px;background:#fff;border:2px solid var(--border);box-shadow:0 4px 0 var(--border);font-weight:800;font-size:17px;color:var(--ink)}
+.opt .k{width:32px;height:32px;border-radius:10px;border:2px solid var(--border);display:grid;place-items:center;font-size:14px;font-weight:900;color:var(--muted);flex:none}
+.opt .mk{margin-left:auto;font-weight:900;font-size:18px}
+.opt.ok{background:var(--success-soft);border-color:var(--success);box-shadow:0 4px 0 var(--success);color:var(--success-ink)}
+.opt.ok .k{background:var(--success);border-color:var(--success);color:#fff}
+.opt.ko{background:var(--danger-soft);border-color:var(--danger);box-shadow:0 4px 0 var(--danger);color:var(--danger-ink)}
+.opt.ko .k{background:var(--danger);border-color:var(--danger);color:#fff}
+.opt.off{color:var(--muted);box-shadow:0 2px 0 var(--border);opacity:.75}
+
+.pbar{height:16px;border-radius:999px;background:var(--surface-alt);overflow:hidden;position:relative}
+.pbar i{display:block;height:100%;border-radius:999px;background:var(--primary);position:relative}
+.pbar i:after{content:'';position:absolute;left:8px;right:8px;top:4px;height:4px;border-radius:999px;background:rgba(255,255,255,.35)}
+.pbar.s10{height:10px} .pbar.s10 i:after{display:none}
+.pbar.ok i{background:var(--success-bright)}
+.pbar.sun i{background:var(--sun)}
+
+.badge{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:13px;border-radius:10px;padding:4px 10px}
+.badge.lvl{background:var(--primary-soft);color:var(--primary-ink)}
+.badge.ok{background:var(--success-soft);color:var(--success-ink)}
+.badge.ko{background:var(--danger-soft);color:var(--danger-ink)}
+.badge.big{font-size:16px;padding:8px 14px;border-radius:12px}
+
+.streak{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:999px;background:var(--flame-soft);color:var(--flame-ink);font-weight:900;font-size:17px;border:2px solid #FFD9CC}
+.streak.off{background:var(--surface-alt);color:var(--muted);border-color:var(--border)}
+.streak.off .fl{filter:grayscale(1);opacity:.6}
+
+.ring{--p:40;--c:var(--primary);--t:var(--surface-alt);--sz:72px;--th:10px;width:var(--sz);height:var(--sz);border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--t) 0);position:relative;display:grid;place-items:center;flex:none}
+.ring:before{content:'';position:absolute;inset:var(--th);border-radius:50%;background:var(--ring-in,#fff)}
+.ring > *{position:relative;z-index:1;text-align:center;line-height:1}
+.ring .v{font-weight:900;font-size:18px}
+.ring .u{font-weight:800;font-size:11px;color:var(--muted);margin-top:2px}
+
+.week{display:flex;gap:6px}
+.day{width:30px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:900;color:var(--muted)}
+.day .d{width:28px;height:28px;border-radius:50%;background:var(--surface-alt);display:grid;place-items:center;font-size:14px}
+.day.on .d{background:var(--flame-soft);border:2px solid var(--flame)}
+.day.today{color:var(--ink)}
+.day.today .d{outline:2px dashed var(--flame);outline-offset:2px}
+
+/* ---------- Mascotte Vobi ---------- */
+.vobi-wrap{width:calc(120px * var(--k,1));height:calc(120px * var(--k,1));position:relative;flex:none}
+.vobi{position:absolute;left:0;top:0;width:120px;height:120px;transform:scale(var(--k,1));transform-origin:0 0}
+.vobi .inner{position:absolute;inset:0}
+.vobi .tail{position:absolute;left:24px;top:84px;width:24px;height:24px;background:var(--sun-lip);border-radius:4px;transform:rotate(45deg)}
+.vobi .body{position:absolute;left:10px;top:20px;width:100px;height:80px;background:var(--sun);border-radius:38px;box-shadow:inset 0 -7px 0 var(--sun-lip)}
+.vobi .spark{position:absolute;left:90px;top:2px;font-size:26px;line-height:1;color:var(--primary);transform:rotate(14deg);font-family:'DejaVu Sans',sans-serif}
+.vobi .eye{position:absolute;top:44px;width:13px;height:17px;background:var(--ink);border-radius:50%}
+.vobi .eye:after{content:'';position:absolute;left:3px;top:3px;width:4.5px;height:4.5px;border-radius:50%;background:#fff}
+.vobi .eye.l{left:38px} .vobi .eye.r{left:69px}
+.vobi .eye.up:after{left:5px;top:1.5px}
+.vobi .eye.happy{background:transparent;width:16px;height:10px;top:47px;border:4.5px solid var(--ink);border-bottom:0;border-radius:12px 12px 0 0}
+.vobi .eye.happy:after{display:none}
+.vobi .eye.happy.l{left:36px} .vobi .eye.happy.r{left:68px}
+.vobi .eye.closed{height:4.5px;top:53px;width:15px;border-radius:3px}
+.vobi .eye.closed:after{display:none}
+.vobi .eye.closed.l{left:37px} .vobi .eye.closed.r{left:68px}
+.vobi .brow{position:absolute;top:35px;width:16px;height:4.5px;background:var(--ink);border-radius:3px}
+.vobi .brow.l{left:36px} .vobi .brow.r{left:68px}
+.vobi .brow.det.l{transform:rotate(16deg)} .vobi .brow.det.r{transform:rotate(-16deg)}
+.vobi .brow.wor.l{transform:rotate(-16deg)} .vobi .brow.wor.r{transform:rotate(16deg)}
+.vobi .cheek{position:absolute;top:66px;width:13px;height:7px;border-radius:50%;background:var(--cheek);opacity:.8}
+.vobi .cheek.l{left:24px} .vobi .cheek.r{left:83px}
+.vobi .mouth{position:absolute;background:var(--ink);overflow:hidden}
+.vobi .mouth.smile{left:49px;top:66px;width:22px;height:11px;border-radius:2px 2px 12px 12px}
+.vobi .mouth.grin{left:45px;top:64px;width:30px;height:17px;border-radius:4px 4px 16px 16px}
+.vobi .mouth.o{left:54px;top:66px;width:12px;height:14px;border-radius:50%}
+.vobi .mouth.flat{left:52px;top:68px;width:16px;height:7px;border-radius:2px 2px 8px 8px}
+.vobi .mouth.sleepy{left:55px;top:69px;width:10px;height:6px;border-radius:5px}
+.vobi .mouth.smile:after,.vobi .mouth.grin:after{content:'';position:absolute;left:50%;bottom:0;width:55%;height:45%;transform:translateX(-50%);background:var(--flame);border-radius:10px 10px 0 0}
+.vobi .band{position:absolute;left:14px;top:30px;width:92px;height:9px;background:var(--flame);border-radius:4px}
+.vobi .band:after{content:'';position:absolute;right:-12px;top:-2px;width:14px;height:8px;background:var(--flame);border-radius:4px;transform:rotate(-25deg)}
+.vobi .acc{position:absolute;line-height:1}
+.vobi.tilt .inner{transform:rotate(-7deg)}
+
+.mascot-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:16px}
+.mood{background:#fff;border:2px solid var(--border);border-radius:26px;box-shadow:0 5px 0 var(--border);padding:18px 14px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.mood .stage{width:100%;height:150px;border-radius:20px;display:grid;place-items:center}
+.mood .t{font-weight:900;font-size:16px}
+.mood .w{font-size:13px;color:var(--muted);line-height:1.4}
+.mood .say{font-size:13px;font-weight:800;background:var(--surface-alt);border-radius:12px;padding:6px 10px;color:var(--ink)}
+
+.rn-plan{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center;margin-top:24px}
+.anatomy{position:relative;background:#fff;border:2px solid var(--border);border-radius:28px;padding:28px 36px;box-shadow:0 5px 0 var(--border)}
+code{font-family:ui-monospace,'DejaVu Sans Mono',monospace;font-size:.88em;background:var(--surface-alt);border-radius:6px;padding:1px 6px;color:var(--primary-ink);font-weight:600}
+
+/* ---------- Écrans ---------- */
+.screens{display:grid;grid-template-columns:repeat(4,414px);gap:48px 40px;justify-content:center}
+.shot{display:flex;flex-direction:column;align-items:center;gap:14px}
+.shot-label{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px}
+.shot-label .n{width:30px;height:30px;border-radius:10px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:14px}
+.device{padding:12px;background:#1E1442;border-radius:60px;box-shadow:0 18px 40px rgba(30,20,66,.22)}
+.screen{width:390px;height:844px;border-radius:48px;overflow:hidden;background:var(--bg);position:relative;display:flex;flex-direction:column}
+.sbar{height:50px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 36px;font-weight:800;font-size:16px;position:relative}
+.sbar .island{position:absolute;left:50%;top:11px;transform:translateX(-50%);width:122px;height:35px;background:#000;border-radius:20px}
+.sbar .ic{display:flex;align-items:center;gap:6px}
+.sig{display:flex;align-items:flex-end;gap:2px;height:12px}
+.sig i{width:3px;background:currentColor;border-radius:1px}
+.bat{width:25px;height:12px;border:2px solid currentColor;border-radius:4px;padding:1px;opacity:.9}
+.bat i{display:block;height:100%;width:75%;background:currentColor;border-radius:1px}
+.screen.dark-top .sbar{color:#fff}
+.content{flex:1;padding:6px 16px 0;display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--ink);opacity:.85}
+.tabbar{flex:none;height:86px;background:#fff;border-top:2px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 10px 0;position:relative}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:800;color:var(--muted);padding-top:4px;height:52px;border-radius:16px;justify-content:center}
+.tab .e{font-size:22px;filter:grayscale(.2);opacity:.75}
+.tab.on{color:var(--primary);background:var(--primary-soft)}
+.tab.on .e{opacity:1;filter:none}
+.tab .dot{position:absolute;margin-left:28px;margin-top:-30px;width:9px;height:9px;border-radius:50%;background:var(--flame);border:2px solid #fff}
+
+.card{background:#fff;border:2px solid var(--border);border-radius:22px;box-shadow:0 4px 0 var(--border);padding:16px}
+.row{display:flex;align-items:center;gap:12px}
+.between{justify-content:space-between}
+.col{display:flex;flex-direction:column}
+.h1{font-size:28px;font-weight:900;line-height:34px;letter-spacing:-.3px}
+.h2{font-size:21px;font-weight:900;line-height:27px}
+.h3{font-size:17px;font-weight:900;line-height:22px}
+.body{font-size:15px;font-weight:600;line-height:22px}
+.cap{font-size:13px;font-weight:700;line-height:18px;color:var(--muted)}
+.over{font-size:12px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.iconbtn{width:44px;height:44px;border-radius:14px;background:#fff;border:2px solid var(--border);box-shadow:0 3px 0 var(--border);display:grid;place-items:center;font-size:20px}
+
+.wordmark{font-weight:900;font-size:24px;letter-spacing:-.5px}
+.wordmark b{color:var(--primary);font-weight:900}
+
+/* Session */
+.shead{display:flex;align-items:center;gap:12px;padding:4px 16px 0;height:52px;flex:none}
+.quit{font-weight:900;color:var(--primary);font-size:15px;height:44px;display:flex;align-items:center;gap:4px;padding-right:4px}
+.shead .pbar{flex:1}
+.count{font-weight:900;font-size:15px;color:var(--muted);min-width:38px;text-align:right}
+.flash{flex:1;background:#fff;border:2px solid var(--border);border-radius:30px;box-shadow:0 6px 0 var(--border);padding:18px;display:flex;flex-direction:column;position:relative;min-height:0}
+.catchip{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:6px 10px;font-weight:900;font-size:13px}
+.speak{width:56px;height:56px;border-radius:50%;background:var(--primary-soft);display:grid;place-items:center;font-size:24px;box-shadow:0 4px 0 #D9CCFF}
+.speak.sm{width:44px;height:44px;font-size:19px;box-shadow:0 3px 0 #D9CCFF}
+.actions{flex:none;padding:12px 16px 34px;display:flex;flex-direction:column;gap:10px}
+.example{background:var(--primary-soft);border-radius:18px;padding:14px 14px 14px 16px;display:flex;gap:12px;align-items:center}
+.example p{font-style:italic;font-size:16px;line-height:23px;color:var(--ink);font-weight:600;flex:1}
+
+.sheet{flex:none;border-radius:28px 28px 0 0;padding:18px 16px 34px;display:flex;flex-direction:column;gap:12px}
+.sheet.ok{background:var(--success-soft)}
+.sheet.ko{background:var(--danger-soft)}
+
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.screen > .content,.screen > .actions,.screen > .sbar{position:relative;z-index:1}
+.confetti i{position:absolute;width:10px;height:16px;border-radius:3px}
+.confetti i.c{width:11px;height:11px;border-radius:50%}
+
+.stat{border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:2px;flex:1}
+.stat .v{font-size:30px;font-weight:900;line-height:36px}
+.catc{border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.catc .em{width:34px;height:34px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:18px;flex:none}
+.catc .nm{font-weight:900;font-size:14px;line-height:17px;flex:1;min-width:0}
+.catc .pc{font-weight:900;font-size:19px;margin-left:auto;white-space:nowrap}
+.catc .bar{height:10px;border-radius:999px;background:#fff;overflow:hidden}
+.catc .bar i{display:block;height:100%;border-radius:999px}
+.catc .cp{font-size:12px;font-weight:800;line-height:16px}
+
+.miss{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:2px dashed var(--border);font-size:15px}
+.miss:last-child{border-bottom:0}
+.miss .dt{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:15px;flex:none}
+
+/* ---------- Ton ---------- */
+.copy-table{width:100%;border-collapse:separate;border-spacing:0 10px}
+.copy-table th{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 16px;font-weight:900}
+.copy-table td{background:#fff;padding:14px 16px;font-size:15px;line-height:1.45;border-top:2px solid var(--border);border-bottom:2px solid var(--border)}
+.copy-table td:first-child{border-left:2px solid var(--border);border-radius:16px 0 0 16px;font-weight:900;width:200px}
+.copy-table td:last-child{border-right:2px solid var(--border);border-radius:0 16px 16px 0}
+.copy-table td.old{color:var(--muted)}
+.copy-table td.new{color:var(--primary-ink);font-weight:800}
+
+footer{margin-top:72px;text-align:center;color:var(--muted);font-size:14px}
+
+.page{max-width:1400px;padding:48px 40px 64px}
+.screens{grid-template-columns:repeat(3,414px);gap:44px 40px}
+.intro{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:8px}
+.intro .panel p{margin-top:6px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.badge.rev{background:var(--sun-soft);color:var(--sun-ink)}
+.note{background:var(--primary-soft);color:var(--primary-ink);border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:18px;font-weight:800}
+.note .e{font-size:18px;line-height:20px}
+.wrow{background:#fff;border:2px solid var(--border);border-radius:22px;box-shadow:0 4px 0 var(--border);padding:14px;display:flex;flex-direction:column;gap:6px}
+.wrow .en{font-size:21px;line-height:27px;font-weight:900}
+.wrow .fr{font-size:16px;line-height:22px;font-weight:800;color:var(--primary)}
+.wrow .ex{font-size:14px;line-height:20px;font-style:italic;color:var(--muted);font-weight:600;flex:1}
+.mode{text-align:center;font-size:12px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding-top:6px;flex:none}
+.btn.link{background:none;box-shadow:none;color:var(--primary);height:44px}
+.btn.sec-ink{color:var(--primary)}
+.fade{z-index:2;position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to bottom,rgba(247,245,255,0),var(--bg) 40%);pointer-events:none}
+.bottom{z-index:3;position:absolute;left:16px;right:16px;bottom:34px;display:flex;flex-direction:column;gap:10px}
+.rowmini{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:2px dashed var(--border);font-size:15px}
+.rowmini:last-child{border-bottom:0}
+.rowmini .dt{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:15px;flex:none}
+.back{font-weight:900;color:var(--primary);font-size:15px;height:44px;display:flex;align-items:center}
+.annot{font-size:13px;color:var(--muted);max-width:390px;text-align:center;line-height:1.45;font-weight:600}
+</style></head><body><div class="page">
+<div class="hero" style="padding:36px 48px;grid-template-columns:1.4fr 1fr;border-radius:36px">
+ <div><span class="kicker">v1.1 · Revoir le vocabulaire du jour</span><h1 style="font-size:48px;margin:14px 0 8px">Mots du <span>jour</span></h1><p class="tagline" style="font-size:20px">Relire, puis réviser en cartes, sans pression et sans toucher à la progression.</p></div>
+ <div class="stage" style="height:170px"><div style="position:absolute;top:0;right:0;background:#fff;color:var(--ink);font-weight:900;font-size:16px;border-radius:18px;padding:10px 16px;box-shadow:0 5px 0 var(--primary-lip)">Un petit bonus pour tes mots 💡</div><div class="vobi-wrap" style="--k:1.25"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class=spark>✦</div><div class="eye happy l"></div><div class="eye happy r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth grin"></div></div></div></div></div></div>
+<div class="intro" style="margin-top:28px">
+ <div class="panel"><h3>Indicateur « Su / À revoir »</h3><p>Glyphe + mot + couleur. Jamais la couleur seule.</p><div class="legend"><span class="badge ok big">✓ Su</span><span class="badge rev big">↻ À revoir</span></div></div>
+ <div class="panel"><h3>Absence d'effet sur la progression</h3><p>Dite sur la liste et sur la fin de passe, en une phrase positive :</p><div class="note" style="margin-top:10px"><span class="e">💡</span><span>Réviser est un bonus : ça ne change ni ton objectif, ni ta série, ni ton rythme de révision.</span></div></div>
+</div>
+<section style="margin-top:40px"><div class="sec-head"><span class="sec-num">v1.1</span><div><h2 class="sec">Écrans de la révision</h2><p class="sec-sub">iPhone 390×844. Mêmes tokens que <code>maquettes.html</code> (DA v2). Spec : <code>docs/02-spec-pm.md</code> §10 à §15. Détail : <code>docs/03-design.md</code>, section « v1.1 ».</p></div></div>
+<div class="screens"><div class="shot"><div class="shot-label"><span class="n">1</span>Liste · Mots du jour</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="content" style="gap:10px;padding-top:2px">
+  <div class="back">‹ Retour</div>
+  <div class="row between"><div class="col"><div class="h1">Mots du jour</div><div class="body" style="color:var(--muted)">7 mots étudiés aujourd'hui</div></div><div class="vobi-wrap" style="--k:0.46"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class=spark>✦</div><div class="eye l"></div><div class="eye r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth smile"></div></div></div></div></div>
+  <div class="note"><span class="e">💡</span><span>Réviser est un bonus : ça ne change ni ton objectif, ni ta série, ni ton rythme de révision.</span></div>
+  <div class="wrow"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="catchip" style="background:#E2F1FF;color:#0A4C87">✈️ Voyage</span><span class="badge lvl">A2</span><span style="margin-left:auto"><span class="badge rev">↻ À revoir</span></span></div><div class="row between"><span class="en">luggage</span><span class="speak sm">🔊</span></div><div class="fr">bagages</div><div class="row" style="gap:8px;align-items:center"><div class="ex">“I packed my luggage the night before.”</div><span class="speak sm">🔊</span></div></div>
+  <div class="wrow"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="catchip" style="background:#FFEEDD;color:#8A3A00">🏠 Maison</span><span class="badge lvl">A1</span><span style="margin-left:auto"><span class="badge rev">↻ À revoir</span></span></div><div class="row between"><span class="en">kitchen</span><span class="speak sm">🔊</span></div><div class="fr">cuisine</div><div class="row" style="gap:8px;align-items:center"><div class="ex">“The kitchen is on the left.”</div><span class="speak sm">🔊</span></div></div>
+  <div class="wrow"><div class="row" style="gap:8px;flex-wrap:wrap"><span class="catchip" style="background:#EEF6D8;color:#3D5A00">⚡ Verbes courants</span><span class="badge lvl">A2</span><span style="margin-left:auto"><span class="badge ok">✓ Su</span></span></div><div class="row between"><span class="en">to borrow</span><span class="speak sm">🔊</span></div><div class="fr">emprunter</div><div class="row" style="gap:8px;align-items:center"><div class="ex">“Can I borrow your pen?”</div><span class="speak sm">🔊</span></div></div>
+</div>
+<div class="fade"></div>
+<div class="bottom"><div class="btn full">Réviser ces mots</div></div><span class="homebar"></span></div></div><div class="annot">Ordre : « À revoir » d'abord. Badge = glyphe + mot, jamais la couleur seule. Bouton fixé en bas.</div></div><div class="shot"><div class="shot-label"><span class="n">2</span>Passe · recto</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="shead"><span class="quit">✕ Quitter</span><div class="pbar"><i style="width:28%"></i></div><span class="count">3/7</span></div>
+<div class="mode">Révision · mots du jour</div>
+<div class="content" style="padding-top:8px;padding-bottom:6px">
+ <div class="flash">
+  <div class="row between"><span class="catchip" style="background:#E2F1FF;color:#0A4C87">✈️ Voyage</span><span class="badge lvl">A2</span></div>
+  <div class="cap" style="margin-top:10px">Carte 3 / 7</div>
+  <div class="col" style="flex:1;align-items:center;justify-content:center;gap:22px"><div style="font-size:46px;font-weight:900;line-height:52px;letter-spacing:-.5px">luggage</div><span class="speak">🔊</span></div>
+  <div class="row" style="justify-content:center;gap:8px;color:var(--muted);font-weight:800;font-size:14px"><span>👆</span>Touche la carte pour la retourner</div>
+ </div></div>
+<div class="actions"><div class="row" style="gap:10px;justify-content:center"><div class="vobi-wrap" style="--k:0.36"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class=spark>✦</div><div class="eye l"></div><div class="eye r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth smile"></div></div></div></div><span class="cap" style="color:var(--ink)">Tu te souviens de la traduction ?</span></div><div class="btn full">Retourner</div></div><span class="homebar"></span></div></div><div class="annot">Même carte que la session. Libellé de mode au-dessus. « Retenu » / « À revoir encore » absents avant retournement.</div></div><div class="shot"><div class="shot-label"><span class="n">3</span>Passe · verso</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="shead"><span class="quit">✕ Quitter</span><div class="pbar"><i style="width:28%"></i></div><span class="count">3/7</span></div>
+<div class="mode">Révision · mots du jour</div>
+<div class="content" style="padding-top:8px;padding-bottom:6px">
+ <div class="flash" style="gap:14px">
+  <div class="row between"><span class="catchip" style="background:#E2F1FF;color:#0A4C87">✈️ Voyage</span><span class="badge lvl">A2</span></div>
+  <div class="col" style="flex:1;justify-content:center;gap:14px"><div class="row between"><span style="font-size:30px;font-weight:900">luggage</span><span class="speak sm">🔊</span></div><div style="border-top:2px dashed var(--border)"></div>
+  <div class="col" style="gap:4px"><span class="over">Traduction</span><span style="font-size:34px;font-weight:900;color:var(--primary);line-height:40px">bagages</span></div>
+  <div class="col" style="gap:8px;margin-top:6px"><span class="over">Exemple</span><div class="example"><p>“I packed my luggage the night before the trip.”</p><span class="speak sm" style="background:#fff">🔊</span></div></div></div>
+ </div></div>
+<div class="actions"><div class="cap" style="text-align:center">Réponds sans pression, personne ne note 😉</div><div class="row" style="gap:12px"><div class="btn secondary" style="flex:1;padding:0 8px;font-size:16px">↻ À revoir encore</div><div class="btn success" style="flex:1">✓ Retenu</div></div></div><span class="homebar"></span></div></div><div class="annot">« À revoir encore » en bouton secondaire (pas de rouge : ce n'est pas une erreur). « Retenu » en vert.</div></div><div class="shot"><div class="shot-label"><span class="n">4</span>Fin de passe</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="content" style="align-items:center;gap:10px;padding-top:6px">
+  <div class="vobi-wrap" style="--k:1.0"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class=spark>✦</div><div class="eye l"></div><div class="eye r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth smile"></div></div></div></div>
+  <div class="col" style="align-items:center;gap:2px"><div class="h1">Révision terminée !</div><div class="body" style="color:var(--muted)">Voici les mots à relire encore.</div></div>
+  <div style="font-size:56px;line-height:60px;font-weight:900;letter-spacing:-1px">5 / 7 <span style="font-size:20px;letter-spacing:0" class="h3">retenus</span></div>
+  <div class="note" style="width:100%"><span class="e">💡</span><span>Réviser est un bonus : ça ne change ni ton objectif, ni ta série, ni ton rythme de révision. Les mots à revoir encore sont juste signalés ici.</span></div>
+  <div class="card" style="width:100%;padding:12px 14px"><div class="h3" style="margin-bottom:2px">À revoir encore (2)</div><div class="rowmini"><span class="dt" style="background:#E2F1FF">✈️</span><span><b>luggage</b> — bagages</span></div><div class="rowmini"><span class="dt" style="background:#FFEEDD">🏠</span><span><b>kitchen</b> — cuisine</span></div></div>
+</div>
+<div class="actions" style="padding-top:6px;gap:8px"><div class="btn md full">Refaire les mots difficiles</div><div class="btn md secondary full">Refaire tous les mots</div><div class="btn md secondary full">Accueil</div></div><span class="homebar"></span></div></div><div class="annot">Aucun confetti. Le bouton « mots difficiles » n'existe que s'il y a au moins 1 mot à revoir.</div></div><div class="shot"><div class="shot-label"><span class="n">5</span>État vide</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="content" style="gap:10px;padding-top:2px">
+  <div class="back">‹ Retour</div>
+  <div class="h1">Mots du jour</div>
+  <div class="col" style="align-items:center;justify-content:center;flex:1;gap:10px;padding:0 8px 80px;text-align:center">
+    <div class="vobi-wrap" style="--k:0.8"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class="eye closed l"></div><div class="eye closed r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth sleepy"></div><div class="acc" style="left:92px;top:8px;font-size:26px">💤</div></div></div></div>
+    <div class="h3" style="margin-top:6px">Aucun mot étudié aujourd'hui</div>
+    <div class="body" style="color:var(--muted)">Fais une session pour retrouver ici les mots du jour.</div>
+    <div class="btn full" style="margin-top:12px">Commencer une session</div>
+  </div>
+</div><span class="homebar"></span></div></div><div class="annot">Aucune passe lançable. Vobi « empty ». Atteint aussi après réinitialisation ou à minuit.</div></div><div class="shot"><div class="shot-label"><span class="n">6</span>Accueil · carte d'entrée</div><div class="device"><div class="screen"><div class="sbar"><span>9:41</span><span class="island"></span><span class="ic"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i></span><span class="bat"><i></i></span></span></div>
+<div class="content">
+  <div class="row between" style="height:48px"><div class="wordmark">voca<b>boost</b></div><div class="row" style="gap:8px"><span class="streak">🔥5</span><span class="iconbtn">⚙️</span></div></div>
+  <div style="background:var(--primary);border-radius:26px;padding:14px 16px 16px;box-shadow:0 5px 0 var(--primary-lip);color:#fff">
+    <div class="row" style="gap:10px;align-items:flex-end"><div class="vobi-wrap" style="--k:0.7"><div class="vobi "><div class="inner"><div class="tail"></div><div class="body"></div><div class=spark>✦</div><div class="eye l"></div><div class="eye r"></div><div class="cheek l"></div><div class="cheek r"></div><div class="mouth smile"></div></div></div></div><div style="background:#fff;color:var(--ink);border-radius:18px 18px 18px 6px;padding:10px 12px;font-weight:800;font-size:15px;line-height:20px;margin-bottom:18px;flex:1">Encore 6 cartes et l'objectif du jour est dans la poche 💪</div></div>
+    <div class="btn sun full" style="margin-top:8px">Commencer une session</div>
+  </div>
+  <div class="row" style="gap:12px;align-items:stretch">
+    <div class="card" style="flex:1;padding:14px;display:flex;flex-direction:column;gap:10px"><span class="over">Objectif du jour</span><div class="row" style="gap:10px"><div class="ring" style="--p:40;--sz:64px;--th:9px"><div><div class="v">4</div><div class="u">/ 10</div></div></div><div class="cap" style="color:var(--ink);line-height:17px">Plus que <b>6 cartes</b> !</div></div></div>
+    <div class="card" style="flex:1;padding:14px;display:flex;flex-direction:column;gap:8px"><span class="over">Série</span><div class="row" style="gap:6px"><span style="font-size:30px">🔥</span><span style="font-size:30px;font-weight:900;color:var(--flame-ink)">5</span><span class="cap" style="color:var(--ink);line-height:15px">jours<br>de suite</span></div></div>
+  </div>
+  <div class="card row" style="gap:12px;padding:14px;border-color:var(--primary);box-shadow:0 4px 0 var(--primary)">
+    <span style="width:44px;height:44px;border-radius:14px;background:var(--primary-soft);display:grid;place-items:center;font-size:22px;flex:none">📖</span>
+    <div class="col" style="flex:1;gap:2px"><span class="h3">Mots du jour : 7</span><span class="cap">Relis-les pour mieux les retenir</span></div>
+    <div class="btn sm secondary">Revoir</div>
+  </div>
+  <div class="card row" style="gap:12px;padding:14px"><span style="width:44px;height:44px;border-radius:14px;background:var(--success-soft);display:grid;place-items:center;font-size:22px;flex:none">🎯</span><div class="col" style="flex:1;gap:6px"><div class="row between"><span class="h3">6 % maîtrisés</span><span class="cap">13 / 200</span></div><div class="pbar s10 ok"><i style="width:6%"></i></div></div><span style="font-weight:900;color:var(--muted);font-size:22px">›</span></div>
+</div>
+<div class="tabbar"><div class="tab on"><span class="e">🏠</span>Accueil</div><div class="tab"><span class="e">📚</span>Apprendre</div><div class="tab"><span class="e">📈</span>Progrès</div><div class="tab"><span class="e">📝</span>Test</div></div><span class="homebar"></span></div></div><div class="annot">Carte visible seulement si n ≥ 1. Contour Grape ajouté ici pour la repérer ; en vrai, bordure standard. « Commencer une session » reste dans le hero.</div></div></div></section>
+</div></body></html>

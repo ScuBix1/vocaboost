@@ -555,3 +555,253 @@ Note pour le Développeur/QA : les `testID` existants sont conservés ; les test
 
 ## Validation Client — v2
 ✅ Direction artistique v2 **approuvée** par le client (maquettes `docs/design/`). Aucune des propositions hors spec n'est retenue pour l'instant (XP/niveaux/badges, combo, gel de série, mode sombre, icône/splash Vobi, Nunito, sons/haptique) : implémentation v2 sans nouvelle dépendance.
+
+
+---
+
+# v1.1 — Revoir le vocabulaire du jour
+
+> Ajouté le 2026-10-07. Source de vérité fonctionnelle : `docs/02-spec-pm.md` §10 à §15 (RG-100 → RG-134, US-11 → US-16, décisions D-01 → D-08 approuvées par le client). Rien ci-dessus n'est modifié : cette section **réutilise** la DA v2 (Vobi, palette Grape/Sun/Flame et couleurs de catégorie, boutons 3D, Flashcard) et ajoute au minimum de nouveau.
+> Maquettes : `docs/design/maquettes-revision.html` (aperçu : `docs/design/apercu-revision.png`). Mode clair, aucune dépendance, aucune écriture dans le store.
+> Notation : ` ` dans ce chapitre = espace insécable (U+00A0), à mettre dans les chaînes avant `!` `?` `:` `;` (ex. « Mots du jour : 3 »). Les libellés contractuels sont **sans** variante : « Retenu », « À revoir encore », « Réviser ces mots », etc.
+
+## v1.1.1 Principes
+
+1. **Lecture seule, et on le dit.** Réviser ne touche ni les boîtes, ni l'objectif, ni la série. L'écran le dit en une phrase courte et positive (§v1.1.7), jamais en jargon (« boîte », « Leitner » n'apparaissent jamais).
+2. **Pas un test.** Les libellés « Retenu / À revoir encore » et le verbe « Réviser » se distinguent de « Je savais / Je ne savais pas » (session). Pas de confettis, pas de ✗, pas de rouge : « À revoir encore » est un **rappel**, pas une erreur (bouton `secondary`, badge `sun`).
+3. **Réutiliser.** Flashcard, Button, Card, Badge, EmptyState, ProgressBar, Vobi, chips de catégorie sont repris tels quels ; 1 nouveau composant de ligne, 1 note d'info, 2 variantes (Badge, Button).
+4. **Indicateur d'état jamais en couleur seule** : glyphe + mot (« ✓ Su » / « ↻ À revoir »).
+
+## v1.1.2 Parcours et flux d'écrans
+
+Nouvelles routes proposées (hors onglets, pile au-dessus des onglets, donc sans barre d'onglets, comme `session`) : `/review` (liste), `/review-run` (passe), `/review-result` (fin de passe). Nommage final au Développeur.
+
+```mermaid
+flowchart TD
+  H[Accueil\ncarte « Mots du jour : n » si n ≥ 1] -- "Revoir" --> LST[Mots du jour\nliste]
+  A[Apprendre\nentrée « Mots du jour (n) »] -- "tap (toujours présente)" --> LST
+  SR[Résultat de session\nlien « Revoir les mots du jour »] -- "push" --> LST
+  LST -- "n = 0" --> EMP[État vide]
+  EMP -- "Commencer une session" --> S[Session de cartes]
+  LST -- "Réviser ces mots (instantané des ids)" --> RUN[Passe de révision\ncartes]
+  RUN -- "Quitter (sans confirmation)" --> LST
+  RUN -- "dernière carte (replace)" --> END[Fin de passe]
+  END -- "Refaire les mots difficiles (si ≥ 1)" --> RUN2[Passe « mots difficiles »]
+  END -- "Refaire tous les mots" --> RUN
+  RUN2 -- "Quitter" --> LST
+  RUN2 -- "dernière carte (replace)" --> END
+  END -- "Accueil" --> H
+  LST -- "‹ Retour" --> BACK[écran précédent\nAccueil / Apprendre / Récap]
+```
+
+Règles de navigation : « Quitter » et le retour Android pendant la passe = retour à la liste, **sans confirmation** (rien n'est perdu, RG-112/120). La fin de passe **remplace** la passe (retour arrière → la liste, jamais la dernière carte, RG-33). La liste est **recalculée au focus** (RG-102) : si minuit est passé, elle devient l'état vide. « Accueil » = `dismissAll` puis `navigate('/')` (même `goHome` que le récap de session). Aucune passe n'est reprise après fermeture de l'app.
+
+## v1.1.3 Écran « Mots du jour » (liste) — RG-100 → 107, 116, 130 → 134
+
+**Objectif** : relire ce qu'on a étudié aujourd'hui, puis lancer la révision active en 1 tap.
+
+**Hiérarchie (haut → bas)**
+1. Barre : « ‹ Retour » (texte `primary` 900, zone 44 × 44, à gauche).
+2. Titre `h1` « Mots du jour » + Vobi 56 `hello` à droite (décoratif) ; dessous `body` `inkMuted` : « {n} mot{s} étudié{s} aujourd'hui » (« 1 mot étudié aujourd'hui », « 12 mots étudiés aujourd'hui »).
+3. **InfoNote** (message d'absence d'effet, §v1.1.7).
+4. Liste virtualisée (`FlatList`, 200 mots sans ralentissement) de `DailyWordRow`, ordre RG-106 (« À revoir » d'abord).
+5. Bouton `primary` `lg` fixé en bas, pleine largeur : « Réviser ces mots » (marge basse 16 + inset). Un fondu `bg` de 16 pt au-dessus du bouton évite que le contenu soit coupé net.
+
+**Composants**
+| Composant | Statut | Détail |
+|---|---|---|
+| Button `primary lg` | réutilisé | « Réviser ces mots », `testID="review-start"` |
+| Card (`default`) | réutilisé | conteneur d'une ligne |
+| Chip catégorie (fond `categoryColors[c].soft`, texte `ink`, emoji + nom, rayon 12) | réutilisé de la Flashcard | |
+| Badge `level` | réutilisé | niveau A1 → B2 |
+| Badge d'état | **variante nouvelle** | `Badge variant="review"` (fond `sunSoft`, texte `sunInk`, contraste 7,74) avec `emoji="↻"` et label « À revoir » ; `Badge variant="success"` avec `emoji="✓"` et label « Su » |
+| SpeakButton 🔊 | réutilisé (Flashcard, version 44) | 2 par ligne : mot et exemple |
+| `DailyWordRow` | **nouveau** | props ci-dessous |
+| `InfoNote` | **nouveau** | props ci-dessous |
+
+`DailyWordRow` : `word: { id; en; fr; example; level; categoryLabel; category? }`, `status: 'known' | 'toReview'`, `onSpeakWord?: () => void`, `onSpeakExample?: () => void` (absents → boutons 🔊 masqués, P2), `testID?`.
+Mise en page de la ligne (Card, padding 14, gap 8) :
+- ligne 1 : chip catégorie · niveau · Badge d'état (aligné à droite, passe à la ligne si police agrandie) ;
+- ligne 2 : mot EN `h2` (21/27) + 🔊 44 à droite ; `accessibilityLanguage="en-US"` ;
+- ligne 3 : traduction FR `bodyStrong` 16 en `primary` ;
+- ligne 4 : exemple EN `body` italique `inkMuted` (retour à la ligne autorisé) + 🔊 44 à droite.
+Bord gauche : aucun marquage de couleur supplémentaire (le badge porte l'information). Ligne « À revoir » identique sinon, pour ne pas stigmatiser.
+
+`InfoNote` : `{ emoji?: string; children: string; testID? }`. Fond `primarySoft`, rayon 16, padding 12/14, emoji 18 à gauche, texte `caption` 800 en `primaryInk` (9,66:1), retour à la ligne, `accessibilityRole="text"`. Ce n'est ni un Toast ni une alerte : statique, jamais masqué, non annoncé comme alerte.
+
+**États**
+| État | Rendu |
+|---|---|
+| Chargement (avant réhydratation) | neutre, comme les autres écrans (fond `bg`, rien d'autre) |
+| n ≥ 1 | liste + bouton actif |
+| n = 1 | « 1 mot étudié aujourd'hui », une ligne, bouton actif (la passe aura 1 carte) |
+| n grand (≤ 200) | liste scrollable ; en-tête (titre + InfoNote) dans `ListHeaderComponent` pour que tout défile ; bouton **toujours** visible en bas ; `getItemLayout` non requis (hauteurs variables) |
+| n = 0 | état vide (§v1.1.8) |
+| Police très agrandie (> 1,3) | badge d'état sur sa propre ligne, 🔊 conservés ≥ 44 |
+| TTS indisponible | 🔊 sans effet, pas de crash (RG-81/82) |
+
+**Libellés exacts**
+- Titre : « Mots du jour »
+- Sous-titre : « {n} mot étudié aujourd'hui » / « {n} mots étudiés aujourd'hui »
+- Badges : « ✓ Su » · « ↻ À revoir »
+- Bouton : « Réviser ces mots »
+- Retour : « ‹ Retour »
+- Message InfoNote : voir §v1.1.7.
+
+**Accessibilité**
+- Retour 44 × 44 : `accessibilityRole="button"`, label « Retour ».
+- Chaque ligne : un bloc texte `accessible` avec le label « {en}, {fr}. Exemple : {example}. Catégorie {catégorie}, niveau {niveau}. {Su | À revoir}. » (le badge n'est pas lu en double, `importantForAccessibility="no"`) ; les deux 🔊 sont des éléments séparés : « Écouter le mot {en} » et « Écouter l'exemple » (`accessibilityRole="button"`).
+- Titre en `accessibilityRole="header"` ; sous-titre en `accessibilityLiveRegion="polite"` (annonce le nouveau compte au retour sur l'écran).
+- Bouton « Réviser ces mots » : cible 56 pt.
+- **Réduire les animations** : aucune animation propre à cet écran (pas d'apparition en cascade des lignes) ; Vobi affiché directement.
+
+## v1.1.4 Passe de révision (cartes) — RG-110 → 116, US-12
+
+**Objectif** : se tester activement, sans enjeu, sur tous les mots du jour.
+
+C'est l'écran de session v2 (§5.3) **réutilisé tel quel** avec 3 différences : un libellé de mode, des boutons d'évaluation différents, et aucun effet sur le store.
+
+**Hiérarchie**
+1. Header (52) : « ✕ Quitter » · ProgressBar 16 `primary` (n−1)/N · compteur « {n}/{N} » (`caption` 900).
+2. Libellé de mode sous le header : `overline` `inkMuted` centré « RÉVISION · MOTS DU JOUR » (passe difficile : « RÉVISION · MOTS DIFFICILES »). C'est le repère visuel qui distingue la passe d'une session (même carte, mêmes couleurs).
+3. **Flashcard** (§4.3) inchangée : recto = mot EN `wordXL`, chip catégorie, badge niveau, « Carte {n} / {N} », 🔊, « 👆 Touche la carte pour la retourner » ; verso = mot + 🔊, TRADUCTION, EXEMPLE + 🔊. Aucun badge « Su / À revoir » sur la carte (on évite de souffler la réponse).
+4. Zone d'actions (identique à la session, min 120) :
+   - **recto** : Vobi 36 + `caption` « Tu te souviens de la traduction ? » puis Button `primary` « Retourner ».
+   - **verso** : `caption` centrée « Réponds sans pression, personne ne note 😉 » puis deux boutons égaux (gap 12) : gauche Button **`secondary`** « ↻ À revoir encore » ; droite Button **`success`** « ✓ Retenu ». Ordre de lecture : « Retenu » d'abord (comme « Je savais » d'abord en session).
+
+Pourquoi `secondary` et pas `softDanger` pour « À revoir encore » : la v2 réserve le rouge à l'erreur (§3.1) ; ici il n'y a pas d'erreur. Le glyphe « ↻ » signifie « on y revient ».
+
+**Composants** : Flashcard, Button (`primary`, `secondary`, `success`), ProgressBar, Vobi 36 `hello`, `useReduceMotion`, `useActionGuard` : tous réutilisés. Rien de nouveau. Props de Flashcard inchangées (`word`, `index`, `total`, `flipped`, `onFlip`, `onSpeak`) ; `key={id}` pour repartir du recto à chaque carte.
+
+**États**
+| État | Rendu |
+|---|---|
+| Recto | « Retourner » actif ; « Retenu » / « À revoir encore » **absents** (AC-12.2) |
+| Verso | « Retourner » remplacé par les 2 boutons, actifs immédiatement (verrou anti-double-tap 300 ms, §v1.1.9) |
+| Dernière carte | après le tap, `replace` vers la fin de passe |
+| N = 1 | compteur « 1/1 », barre vide puis pleine à la fin, fin de passe normale |
+| N grand (200) | pas de plafond ; « Quitter » toujours en haut à gauche ; barre fine mais visible (valeur mini 6 %) |
+| Passe vide (instantané vide, ne devrait pas arriver) | redirection vers la liste (qui affichera l'état vide), comme `session.tsx` gère le pool vide |
+| TTS | recto : mot ; verso : mot et exemple ; coupé au changement de carte et à « Quitter » (RG-116) |
+
+**Libellés exacts** : « ✕ Quitter » · « RÉVISION · MOTS DU JOUR » · « RÉVISION · MOTS DIFFICILES » · « {n}/{N} » · « Carte {n} / {N} » · « Tu te souviens de la traduction ? » · « Retourner » · « Réponds sans pression, personne ne note 😉 » · « ↻ À revoir encore » · « ✓ Retenu ».
+
+**Accessibilité**
+- Boutons 56 pt (≥ 44), gap 12 ; sur police > 1,3, les deux boutons passent l'un sous l'autre, « Retenu » en premier.
+- Le glyphe ↻ / ✓ est décoratif ; `accessibilityLabel` = « À revoir encore » / « Retenu ». Les boutons n'existent pas avant le retournement (donc pas lus).
+- Annonces : au retournement, celle de la Flashcard v2 (traduction + exemple). Après un choix, le focus passe sur la nouvelle carte (recto) dont le label commence par « Carte {n} sur {N} » ; ne rien annoncer de plus (pas de « Retenu » parlé : évite le bavardage).
+- Compteur : `accessibilityLabel` « Carte {n} sur {N} » ; barre : `accessibilityRole="progressbar"` (v2).
+- **Réduire les animations** : retournement en fondu 150 ms, carte suivante en fondu 150 ms, barre en saut direct (§6). Aucune vibration (la vibration est réservée à « Je savais » en session ; ici rien n'est évalué).
+- Aucun son, aucune vibration, aucune animation d'éclat sur « Retenu » : c'est volontairement plus calme que la session.
+
+## v1.1.5 Passe « mots difficiles » — RG-114, US-13
+
+Même écran que §v1.1.4, déclenché par « Refaire les mots difficiles » depuis la fin de passe : mêmes composants, mêmes états. Différences : libellé de mode « RÉVISION · MOTS DIFFICILES » ; N = nombre de mots marqués « À revoir encore » à la passe précédente ; marquage en mémoire uniquement (jamais persisté). Peut s'enchaîner ; chaque fin de passe recalcule ses propres difficiles. Si N = 1 : « 1/1 », rien de particulier.
+
+## v1.1.6 Écran de fin de passe — RG-113, 114, AC-12.5, AC-13.2
+
+**Objectif** : donner le bilan (sans note ni enjeu), lister ce qui reste à revoir, proposer la suite.
+
+**Hiérarchie** (contenu défilant, boutons fixés en bas)
+1. Vobi 120, **sans confettis** ni célébration appuyée (RG-113) : `correct` si tous retenus (✨ en accessoire), `hello` sinon. Rebond d'entrée v2 (400 ms).
+2. `h1` : « Révision terminée ! » ; si tous retenus : « Bravo, tout est retenu » (contractuel, AC-13.2).
+3. Score : `score` (56/60) « {x} / {N} » + `h3` « retenus » sur la même ligne de base ; **un seul `Text`** « {x} / {N} retenus » (« retenus » en sous-`Text` plus petit) pour que la chaîne exacte reste cherchable. Pas de pourcentage, pas de couleur rouge/verte : `ink` pour le chiffre.
+4. Sous-titre `body` `inkMuted` : tous retenus → « Tes mots du jour sont bien installés. » ; sinon → « Voici les mots à relire encore. »
+5. **InfoNote** (message d'absence d'effet, §v1.1.7).
+6. Card « À revoir encore ({k}) » (seulement si k ≥ 1) : lignes « [pastille catégorie 30] **{en}** — {fr} » avec séparateurs pointillés (même composant que « Mots à revoir » du résultat du test, §5.8) ; `accessibilityLanguage="en-US"` sur `{en}`. Jusqu'à 200 lignes : la liste est dans le contenu défilant.
+7. Actions fixées en bas (gap 10, tailles `md` 48 pour tenir sur 667 pt) :
+   - si k ≥ 1 : Button `primary` « Refaire les mots difficiles », puis `secondary` « Refaire tous les mots », puis `secondary` « Accueil » ;
+   - si k = 0 : `primary` « Refaire tous les mots », puis `secondary` « Accueil » (pas de bouton de refaite des difficiles).
+
+**Composants** : Vobi, Button, Card, pastille catégorie (existante, résultat du test), `InfoNote` (nouveau, déjà défini). Pas de Confetti, pas de CountUp (le score est affiché directement : pas de « gamification » d'une révision).
+
+**États**
+| Cas | Rendu |
+|---|---|
+| 0 < x < N | cas nominal ci-dessus |
+| x = N | titre « Bravo, tout est retenu », pas de Card difficile, 2 boutons |
+| x = 0 | « 0 / {N} retenus », sous-titre « Voici les mots à relire encore. » (jamais de « Dommage »), Vobi `hello` |
+| N = 1 | « 1 / 1 retenus » ou « 0 / 1 retenus » (libellé contractuel invariable) |
+| Après minuit | l'écran reste affiché ; « Refaire … » reprend l'instantané ; « Accueil » / retour liste = recalcul (RG-102) |
+
+**Accessibilité** : à l'arrivée, annonce unique « Révision terminée : {x} sur {N} retenus. » (`announceForAccessibility`) ; le focus se place sur le titre. Boutons 48 pt min. Titre `accessibilityRole="header"`.
+**Réduire les animations** : Vobi affiché directement, aucune autre animation.
+
+## v1.1.7 Dire clairement que réviser n'a pas d'effet sur la progression
+
+Message unique, court, positif, **affiché sur la liste et sur l'écran de fin de passe** (là où l'utilisateur pourrait s'attendre à un effet), dans l'`InfoNote` :
+
+> 💡 « Réviser est un bonus : ça ne change ni ton objectif, ni ta série, ni ton rythme de révision. »
+
+Variante fin de passe, quand k ≥ 1 : on ajoute à la suite, dans la même note, « Les mots à revoir encore sont juste signalés ici. » (RG-120 : le « À revoir encore » ne rétrograde rien). Le mot « bonus » assure que ce n'est pas une perte ; « ton rythme de révision » évite « boîte » et « Leitner ».
+Pas de message répété sur chaque carte (bruit) ni d'alerte modale. Lien avec les autres écrans : l'Accueil n'est pas modifié, l'objectif et la série restent aussi à l'identique après une révision, ce qui confirme le message. Les libellés de la carte d'entrée de l'Accueil (« Relis-les pour mieux les retenir ») ne promettent **aucune** progression.
+
+## v1.1.8 État vide — RG-133, AC-15.2
+
+Affiché quand n = 0 (premier lancement, après réinitialisation, ou à minuit), depuis la liste (donc depuis l'onglet Apprendre) :
+- Barre « ‹ Retour » + `h1` « Mots du jour » (pas de sous-titre ni d'InfoNote ni de bouton « Réviser ces mots »).
+- **EmptyState** réutilisé : `mood="empty"` (Vobi 96 yeux fermés, 💤), title « Aucun mot étudié aujourd'hui », message « Fais une session pour retrouver ici les mots du jour. », `actionLabel="Commencer une session"`, `actionVariant="primary"` → `/session`.
+- Aucune passe lançable. Si le pool filtré est vide (aucun mot ne correspond aux filtres), le bouton mène à la session, qui affiche son propre état vide (inchangé v2).
+- Accessibilité : titre + message lus d'un bloc, bouton 56 pt ; **Réduire les animations** : Vobi sans rebond.
+
+## v1.1.9 Points d'entrée — RG-130 → 132
+
+**1. Carte « Mots du jour » sur l'Accueil** (affichée seulement si n ≥ 1 ; rien pour un nouvel utilisateur ; ne remplace pas et ne déplace pas « Commencer une session », qui reste dans le hero au-dessus de la ligne de flottaison, AC-01.1).
+- Position : entre les deux tuiles (Objectif / Série) et la carte « mots maîtrisés ».
+- Card `default`, rangée : pastille 📖 44 (`primarySoft`, rayon 14) · colonne [`h3` « Mots du jour : {n} » ; `caption` `inkMuted` « Relis-les pour mieux les retenir »] · Button `secondary` `sm` (44) « Revoir » à droite.
+- La carte n'est **pas** elle-même pressable (une seule cible : le bouton) ; `accessibilityLabel` du bouton : « Revoir les mots du jour ({n}) ».
+- États : n = 1 → « Mots du jour : 1 » ; n grand → inchangé ; n = 0 → carte absente. Sous police agrandie, le bouton passe sous le texte, pleine largeur.
+- Aucune animation ; recalcul au focus de l'onglet.
+
+**2. Onglet Apprendre** : entrée permanente **entre** la Card « Ta prochaine session » et la Card « Filtres » : Card `default` pressable (chevron « › » standard) : pastille 📖, titre « Mots du jour ({n}) », `caption` « Relire et réviser ce que tu as étudié aujourd'hui » ; n = 0 : même carte, `caption` « Rien pour l'instant : fais une session. » ; tap → liste (qui montre l'état vide si n = 0). Label : « Mots du jour, {n} mots. Ouvrir ».
+
+**3. Récap de session** : sous « Accueil », bouton tertiaire « Revoir les mots du jour » (nouvelle variante **`link`** du Button : sans face ni lèvre, texte `primary` 900 17/22, hauteur 44, pleine largeur, centré). « Nouvelle session » et « Accueil » ne bougent pas. Ouvre la liste de **tous** les mots du jour (pas seulement ceux de la session) en `push`.
+
+**Composants nouveaux au total** : `DailyWordRow`, `InfoNote`, `Badge variant="review"`, `Button variant="link"`. Tous les autres éléments sont réutilisés. Aucun nouveau token (couleurs `sunSoft`, `sunInk`, `primarySoft`, `primaryInk` existantes).
+
+## v1.1.10 Garde-fous anti-double-tap (déjà en place : `src/hooks/useActionGuard.ts`)
+
+À appliquer **à tous** les nouveaux boutons ; durée par défaut `ACTION_GUARD_MS = 300` ms.
+- **`useArrivalGuard()`** (renvoie `justArrived()`) sur **chaque écran de révision** : liste, fin de passe, état vide. Raison : le bouton qui apparaît sous le doigt est au même endroit que celui qui vient d'être touché. Cas concrets : « Réviser ces mots » (bas de la liste) tombe là où se trouvait « Revoir les mots du jour » du récap ; « Accueil » / « Refaire … » de la fin de passe tombent sous le dernier « Retenu » / « À revoir encore » ; « Commencer une session » de l'état vide tombe sous l'entrée tapée. Écriture : `onPress={() => !justArrived() && action()}` (comme `session-result.tsx`).
+- **`useActionGuard()`** (`lock`, `isLocked`, `locked`) sur la **passe** : `lock()` à chaque « Retourner » (le tap suivant, qui arrive sur « Retenu » au même emplacement, est ignoré pendant 300 ms) et à chaque « Retenu » / « À revoir encore » (le tap suivant atterrit sur « Retourner » de la carte suivante) ; vérifier `isLocked()` en tête de chaque handler (vérification synchrone, avant tout `setState`). Les boutons peuvent aussi recevoir `disabled={locked}` **sans changement visuel marqué** (pas de grisé clignotant : le bouton disabled v2 devient gris ; préférer ignorer silencieusement).
+- Navigation : « Réviser ces mots », « Revoir », « Refaire … », « Accueil » → `lock()` au tap (évite deux `push`/`replace` empilés). La dernière carte déclenche `replace` une seule fois (le verrou couvre le double tap sur le dernier « Retenu »).
+- « Quitter » et « ‹ Retour » : non verrouillés par le garde d'action mais protégés par `useArrivalGuard` sur l'arrivée.
+- Le verrou ne retarde jamais l'enregistrement du choix (aucune écriture ici de toute façon) et n'ajoute aucun effet visuel (§6, règle « aucune action n'attend plus de 200 ms » respectée : le verrou est invisible).
+- Tests (QA) : double tap rapide sur « Retourner » → une seule carte retournée, « Retenu » non déclenché ; double tap sur le dernier « Retenu » → une seule navigation, « Accueil » de la fin non actionné.
+
+## v1.1.11 Indicateur « Su / À revoir » et usage des couleurs
+
+| État (RG-105) | Rendu | Pourquoi |
+|---|---|---|
+| `box ≥ 1` | Badge `success` « ✓ Su » (fond `successSoft`, texte `successInk` 5,63:1) | glyphe ✓ + mot + couleur |
+| `box = 0` | Badge `review` « ↻ À revoir » (fond `sunSoft`, texte `sunInk` 7,74:1) | glyphe ↻ + mot ; jaune chaud, **pas** de rouge : ce n'est pas une faute |
+
+Jamais la couleur seule : le glyphe et le mot sont toujours présents, et le lecteur d'écran lit « Su » / « À revoir » dans le label de ligne. Couleurs de **catégorie** : chip (`soft`/`ink`) sur chaque ligne de la liste et sur la Flashcard ; pastille emoji `soft` dans la liste « À revoir encore » ; `base` n'est pas utilisée ici. Niveau : badge `level` neutre. **Vobi** : `hello` en en-tête de liste (56), `hello` en indice de recto (36), `correct` / `hello` en fin de passe (120), `empty` à l'état vide (96). Pas de `oops`, `retry` ni `streak` (aucune notion d'échec ni de série dans la révision).
+
+## v1.1.12 Textes de la section (récapitulatif, ton DA v2)
+
+| Où | Libellé |
+|---|---|
+| Carte Accueil | « Mots du jour : {n} » · « Relis-les pour mieux les retenir » · « Revoir » |
+| Entrée Apprendre | « Mots du jour ({n}) » · « Relire et réviser ce que tu as étudié aujourd'hui » |
+| Récap | « Revoir les mots du jour » |
+| Liste | « Mots du jour » · « {n} mot(s) étudié(s) aujourd'hui » · « ✓ Su » · « ↻ À revoir » · « Réviser ces mots » |
+| Note | « Réviser est un bonus : ça ne change ni ton objectif, ni ta série, ni ton rythme de révision. » |
+| Passe | « RÉVISION · MOTS DU JOUR » · « Tu te souviens de la traduction ? » · « Retourner » · « Réponds sans pression, personne ne note 😉 » · « ↻ À revoir encore » · « ✓ Retenu » |
+| Fin | « Révision terminée ! » · « {x} / {N} retenus » · « À revoir encore ({k}) » · « Refaire les mots difficiles » · « Refaire tous les mots » · « Accueil » · « Bravo, tout est retenu » |
+| Vide | « Aucun mot étudié aujourd'hui » · « Fais une session pour retrouver ici les mots du jour. » · « Commencer une session » |
+
+Règles d'écriture : tutoiement, ≤ 12 mots, un emoji maximum par phrase en fin de phrase, jamais « raté / échec / dommage / erreur ». Aucune de ces chaînes ne contredit un libellé contractuel de §8.4 ; les nouveaux libellés contractuels v1.1 sont ceux de la spec §11 (RG-105, 110, 112, 113, 130 → 133).
+
+## v1.1.13 Remarques pour le PM / Développeur
+
+1. **Libellé « {x} / {N} retenus »** : invariable (grammaticalement discutable à 1 mais contractuel RG-113).
+2. « Refaire tous les mots » reprend l'**instantané** de la passe courante (cohérent RG-102) ; à confirmer côté dev.
+3. `Badge variant="review"` et `Button variant="link"` sont de simples ajouts de variantes ; aucune dépendance, aucun token nouveau.
+4. Aucune écriture AsyncStorage, aucun changement de `STORAGE_VERSION` (AC-14.4/14.5) : l'état « À revoir encore » vit dans un store mémoire non persisté.
+
+## Validation v1.1
+- Design v1.1 : **à valider par le client** sur la base de `docs/design/maquettes-revision.html`. Le développement de l'écran peut démarrer dès validation (spec PM et décisions D-01 → D-08 déjà approuvées).
+
+### Validation Client — v1.1
+✅ Design « Revoir le vocabulaire du jour » approuvé (maquettes `docs/design/maquettes-revision.html`).
