@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VocaBoost v1.2 — aperçu</title>
+<style>
+:root{
+  --bg:#F7F5FF; --surface:#FFFFFF; --surface-alt:#EFEBFA; --border:#E3DEF5;
+  --ink:#1E1442; --muted:#5B5577; --on-color:#FFFFFF;
+  --primary:#6B3CF5; --primary-lip:#4B22C2; --primary-soft:#EFE9FF; --primary-ink:#3D1A9E; --speak-lip:#D9CCFF;
+  --sun:#FFC83D; --sun-soft:#FFF4D6; --sun-ink:#6B4500;
+  --success:#0B7F5E; --success-lip:#075C44; --success-ink:#0B6E52; --success-soft:#E3F8EF;
+  --danger-soft:#FFE8EA; --danger-ink:#9E1B30;
+  --font:'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-weight:600;-webkit-font-smoothing:antialiased}
+.page{width:1240px;margin:0 auto;padding:28px 32px 36px}
+h1{font-size:26px;font-weight:900}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 18px;line-height:1.45}
+.row{display:flex;gap:28px;align-items:flex-start}
+.shot{display:flex;flex-direction:column;gap:8px}
+.lbl{font-size:13px;font-weight:900;color:var(--primary-ink);background:var(--primary-soft);border-radius:999px;padding:4px 12px;align-self:flex-start}
+.note{font-size:12.5px;color:var(--muted);line-height:1.4;max-width:360px;font-weight:700}
+.screen{background:var(--bg);border:2px solid var(--border);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.s320{width:320px;height:568px}.s360{width:360px;height:740px}
+.hdr{height:52px;display:flex;align-items:center;gap:12px;padding:4px 16px 0;flex:none}
+.quit{font-size:15px;font-weight:900;color:var(--primary)}
+.bar{flex:1;height:16px;border-radius:8px;background:var(--surface-alt);overflow:hidden}.bar i{display:block;height:100%;background:var(--primary);border-radius:8px}
+.cnt{font-size:15px;font-weight:900;color:var(--muted);min-width:38px;text-align:right}
+.body{flex:1;min-height:0;padding:14px 16px 6px;display:flex}
+.card{flex:1;padding-bottom:0;min-height:0;display:flex;flex-direction:column;background:var(--surface);border:2px solid var(--border);border-radius:30px;margin-bottom:6px;box-shadow:0 6px 0 var(--border);padding:18px 18px 0;gap:12px;position:relative;overflow:hidden}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none}
+.chip{display:inline-flex;gap:6px;border-radius:12px;padding:6px 10px;font-size:13px;line-height:17px;font-weight:900}
+.badge{border-radius:10px;padding:4px 10px;font-size:13px;font-weight:900;background:var(--primary-soft);color:var(--primary-ink)}
+.scroll{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:12px;padding-bottom:18px;position:relative}
+.card>.wordrow{flex:none}.card>.sep{flex:none}
+.scroll.long{justify-content:flex-start}
+.wordrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.w{font-size:30px;line-height:36px;font-weight:900}
+.speak{width:44px;height:44px;border-radius:50%;background:var(--primary-soft);border-bottom:3px solid var(--speak-lip);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.speak.white{background:#fff}
+.sep{border-top:2px dashed var(--border)}
+.ov{font-size:12px;line-height:16px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.tr{font-size:28px;line-height:34px;font-weight:900;color:var(--primary)}
+.blk{display:flex;flex-direction:column;gap:6px}
+.enc{background:var(--primary-soft);border-radius:18px;padding:14px 16px}
+.enc .en{display:flex;align-items:center;gap:12px}
+.enc .en p{flex:1;font-size:16px;line-height:23px;font-style:italic;font-weight:600}
+.enc hr{border:0;border-top:2px dashed var(--speak-lip);margin:12px 0 10px}
+.enc .fr .ov{margin-bottom:2px}
+.enc .fr p{font-size:15px;line-height:22px;font-weight:700;color:var(--primary-ink)}
+.fade{position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(rgba(255,255,255,0),#fff 85%);pointer-events:none}
+.thumb{position:absolute;right:6px;top:150px;width:4px;height:48%;border-radius:2px;background:#8F88AD}
+.act{flex:none;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:12px 16px 16px}
+.act .h{font-size:13px;font-weight:700;color:var(--muted);text-align:center}
+.btns{display:flex;flex-direction:row-reverse;gap:12px}
+.btn{flex:1;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;white-space:nowrap}
+.ok{background:var(--success);color:#fff;border-bottom:5px solid var(--success-lip)}
+.ko{background:var(--danger-soft);color:var(--danger-ink);border-bottom:5px solid #F5C0C6}
+/* liste */
+.list{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.row-card{background:#fff;border:2px solid var(--border);border-radius:22px;box-shadow:0 4px 0 var(--border);padding:14px;display:flex;flex-direction:column;gap:8px}
+.mrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.st{margin-left:auto;border-radius:10px;padding:4px 10px;font-size:13px;font-weight:900}
+.l{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.en2{font-size:21px;line-height:27px;font-weight:900}
+.fr2{font-size:16px;line-height:22px;font-weight:800;color:var(--primary)}
+.grp{display:flex;flex-direction:column;gap:4px}
+.ex{flex:1;font-size:15px;line-height:22px;font-style:italic;color:var(--muted)}
+.trl{display:flex;gap:8px;padding-right:52px;font-size:15px;line-height:22px;font-weight:600;color:var(--primary-ink)}
+.trl .flag{font-size:14px;line-height:22px;flex:none}
+/* segmented */
+.seg{display:flex;background:var(--surface-alt);border-radius:16px;padding:4px;gap:4px}
+.seg div{flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900}
+.seg .on{background:var(--primary);color:#fff;border-radius:12px;border-bottom:3px solid var(--primary-lip);min-height:45px}
+.sec{padding:16px;display:flex;flex-direction:column;gap:8px}
+.sec h2{font-size:21px;line-height:27px;font-weight:900}.cap{font-size:13px;line-height:18px;font-weight:700;color:var(--muted)}
+.ruler{height:0;border-top:2px solid #E5620F;position:relative}.ruler span{position:absolute;top:-18px;left:0;font-size:11px;font-weight:900;color:#8A3A00}
+</style></head><body><div class="page">
+<h1>VocaBoost v1.2 — traduction de l'exemple et objectif à 15</h1>
+<p class="sub">Mêmes tokens que <code>maquettes.html</code> (aucun nouveau jeton). Verso, ligne « Mots du jour » et sélecteur d'objectif ; tailles réelles en points (320×568, 360×740).</p>
+<div class="row">
+
+<!-- 1. Verso court, 320x568 -->
+<div class="shot"><span class="lbl">1 · Verso, exemple court (320×568)</span>
+<div class="screen s320"><div class="hdr"><span class="quit">✕ Quitter</span><div class="bar"><i style="width:20%"></i></div><span class="cnt">4/15</span></div>
+<div class="body"><div class="card">
+ <div class="meta"><span class="chip" style="background:#E7E9FF;color:#28308A">💼 Travail</span><span class="badge">A2</span></div>
+ <div class="wordrow"><span class="w">careful</span><span class="speak">🔊</span></div><div class="sep"></div><div class="scroll long">
+  <div class="blk"><span class="ov">Traduction</span><span class="tr">prudent</span></div>
+  <div class="blk"><span class="ov">Exemple</span>
+   <div class="enc"><div class="en"><p lang="en-US">“Be careful, the stairs are very steep.”</p><span class="speak white">🔊</span></div>
+    <hr><div class="fr"><div class="ov">🇫🇷 En français</div><p lang="fr-FR">«&nbsp;Fais attention, l’escalier est très raide.&nbsp;»</p></div></div></div>
+ </div></div></div>
+<div class="act"><div class="h">Sois honnête : l'app adapte tes révisions 😉</div><div class="btns"><div class="btn ok">✓ Je savais</div><div class="btn ko">✗ Je ne savais pas</div></div></div></div>
+<p class="note">Mot, 🔊 et puce restent fixes ; seul le bas (traduction + exemple) défile d'environ 40 pt. Les boutons ne bougent jamais.</p></div>
+
+<!-- 2. Verso long 320 -->
+<div class="shot"><span class="lbl">2 · Verso, exemple long, défilant (320×568)</span>
+<div class="screen s320"><div class="hdr"><span class="quit">✕ Quitter</span><div class="bar"><i style="width:47%"></i></div><span class="cnt">8/15</span></div>
+<div class="body"><div class="card">
+ <div class="meta"><span class="chip" style="background:#FFEEDD;color:#8A3A00">🏠 Maison</span><span class="badge">B1</span></div>
+ <div class="wordrow"><span class="w" style="font-size:26px">neighbourhood</span><span class="speak">🔊</span></div><div class="sep"></div><div class="scroll long">
+  <div class="blk"><span class="ov">Traduction</span><span class="tr">quartier</span></div>
+  <div class="blk"><span class="ov">Exemple</span>
+   <div class="enc"><div class="en"><p lang="en-US">“Although the neighbourhood was noisy at night, we decided to stay because the rent was so cheap.”</p><span class="speak white">🔊</span></div>
+    <hr><div class="fr"><div class="ov">🇫🇷 En français</div><p lang="fr-FR">«&nbsp;Même si le quartier était bruyant la nuit, nous avons décidé de rester parce que le loyer était si bas.&nbsp;»</p></div></div></div>
+ </div><div class="fade"></div><div class="thumb" style="height:35%"></div></div></div>
+<div class="act"><div class="h">Sois honnête : l'app adapte tes révisions 😉</div><div class="btns"><div class="btn ok">✓ Je savais</div><div class="btn ko">✗ Je ne savais pas</div></div></div></div>
+<p class="note">Le corps du verso défile dans la carte (barre visible + dégradé de 30 pt tant qu'il reste du contenu) ; puce, mot et boutons restent en place.</p></div>
+
+<!-- 3. Verso long 360x740 -->
+<div class="shot"><span class="lbl">3 · Même verso long (360×740) : tout tient</span>
+<div class="screen s360"><div class="hdr"><span class="quit">✕ Quitter</span><div class="bar"><i style="width:47%"></i></div><span class="cnt">8/15</span></div>
+<div class="body"><div class="card">
+ <div class="meta"><span class="chip" style="background:#FFEEDD;color:#8A3A00">🏠 Maison</span><span class="badge">B1</span></div>
+ <div class="wordrow"><span class="w" style="font-size:26px">neighbourhood</span><span class="speak">🔊</span></div><div class="sep"></div><div class="scroll long">
+  <div class="blk"><span class="ov">Traduction</span><span class="tr">quartier</span></div>
+  <div class="blk"><span class="ov">Exemple</span>
+   <div class="enc"><div class="en"><p lang="en-US">“Although the neighbourhood was noisy at night, we decided to stay because the rent was so cheap.”</p><span class="speak white">🔊</span></div>
+    <hr><div class="fr"><div class="ov">🇫🇷 En français</div><p lang="fr-FR">«&nbsp;Même si le quartier était bruyant la nuit, nous avons décidé de rester parce que le loyer était si bas.&nbsp;»</p></div></div></div>
+ </div></div></div>
+<div class="act"><div class="h">Sois honnête : l'app adapte tes révisions 😉</div><div class="btns"><div class="btn ok">✓ Je savais</div><div class="btn ko">✗ Je ne savais pas</div></div></div></div>
+</div>
+
+<!-- colonne droite -->
+<div class="shot" style="gap:22px">
+ <div class="shot"><span class="lbl">4 · Ligne « Mots du jour » (320 pt)</span>
+ <div class="screen" style="width:320px"><div class="list"><div class="row-card">
+  <div class="mrow"><span class="chip" style="background:#FFEEDD;color:#8A3A00">🏠 Maison</span><span class="badge">B1</span><span class="st" style="background:var(--sun-soft);color:var(--sun-ink)">↻ À revoir</span></div>
+  <div class="l"><span class="en2">neighbourhood</span><span class="speak">🔊</span></div>
+  <span class="fr2">quartier</span>
+  <div class="grp"><div class="l"><span class="ex" lang="en-US">“Although the neighbourhood was noisy at night, we decided to stay because the rent was so cheap.”</span><span class="speak">🔊</span></div>
+   <div class="trl" lang="fr-FR"><span class="flag">🇫🇷</span><span>«&nbsp;Même si le quartier était bruyant la nuit, nous avons décidé de rester parce que le loyer était si bas.&nbsp;»</span></div></div>
+ </div></div></div></div>
+
+ <div class="shot"><span class="lbl">5 · Réglages : objectif à 4 options (320 pt)</span>
+ <div class="screen" style="width:320px"><div class="sec"><h2>Objectif quotidien</h2><div class="cap">Nombre de cartes à réviser chaque jour</div>
+  <div class="seg"><div>10</div><div class="on">15</div><div>20</div><div>30</div></div></div></div>
+ <p class="note">Segments de 67 pt (≥ 44) et 48 pt de haut ; « 15 » est le défaut. Même composant, 4 options.</p></div>
+</div>
+</div></div></body></html>

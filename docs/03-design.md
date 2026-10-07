@@ -805,3 +805,81 @@ Règles d'écriture : tutoiement, ≤ 12 mots, un emoji maximum par phrase en fi
 
 ### Validation Client — v1.1
 ✅ Design « Revoir le vocabulaire du jour » approuvé (maquettes `docs/design/maquettes-revision.html`).
+
+---
+
+# v1.2 — 15 cartes et traduction des exemples
+
+> Ajouté le 2026-10-07. Source de vérité : `docs/02-spec-pm.md` §16 à §22 (RG-140 → RG-164, US-17 → US-23, décisions D-09 → D-18 approuvées). Rien ci-dessus n'est réécrit. **Aucun nouveau jeton, aucun nouveau composant.** Aperçu : `docs/design/apercu-v12.png` (source `docs/design/maquettes-v12.html`).
+
+## v1.2.1 Traduction de la phrase d'exemple (RG-155 → 164)
+
+**Où** : verso de `Flashcard` (session **et** passe de révision, composant partagé) et ligne `DailyWordRow`. **Jamais** au recto, ni dans le test. **Toujours visible** dès que le verso/la ligne est affiché : aucun tap, aucune animation propre.
+
+**Verso (Flashcard)** : la traduction vit **dans l'encart `primarySoft` existant**, sous la phrase anglaise, séparée par un filet pointillé.
+| Élément | Spécification |
+|---|---|
+| Encart | inchangé (`primarySoft`, rayon 18, padding 14/16). Ligne 1 : phrase EN (16/23, 600, italique, `ink`) + 🔊 blanc 44, inchangés. |
+| Filet | `borderTopWidth 2`, `dashed`, `speakLip` (#D9CCFF), marges 12 au-dessus / 10 en dessous (décoratif). |
+| Libellé | `overline` (12/16, 900, majuscules) `inkMuted` : « 🇫🇷 En français » (même famille que « 🇫🇷 Français » du test §5.7). Drapeau `accessible={false}`. |
+| Texte | **15/22, 700, non italique**, `primaryInk` (#3D1A9E), **pleine largeur de l'encart** (pas à côté du 🔊), sans `numberOfLines`. |
+| Guillemets | « ␣…␣ » avec **espaces insécables U+00A0 internes** (l'EN garde “ ”). Ils s'ajoutent à l'affichage (RG-156 : pas de guillemets dans la donnée). |
+| Séparation EN / FR | cumul de 5 signaux : filet, libellé + drapeau, romain vs italique, couleur `primaryInk` vs `ink`, guillemets différents. Jamais la couleur seule. |
+| Contraste | `primaryInk` / `primarySoft` **9,66:1** ; libellé `inkMuted` / `primarySoft` **5,9:1** (AA ≥ 4,5). |
+| `exampleFr` vide | bloc entier (filet + libellé + texte) non rendu, sans espace vide. |
+
+**Hauteur et phrases longues (RG-164)** : la hauteur du verso est dérivée de l'écran, jamais fixée.
+1. Puce catégorie/niveau, mot + 🔊 et filet pointillé restent **fixes** en haut de la carte ; « TRADUCTION » + « EXEMPLE » (+ traduction de l'exemple) vont dans un **`ScrollView` interne** (`flex 1`, `showsVerticalScrollIndicator`, `flashScrollIndicators()` au retournement, `nestedScrollEnabled`), aligné en haut. Pas de `justifyContent: 'center'` quand le contenu déborde (il rognerait le haut).
+2. `wrapper.minHeight` passe de 360 à **280** : la carte cède de la hauteur, la zone d'actions (« Je savais / Je ne savais pas », min 120) **ne bouge jamais** et n'est jamais recouverte.
+3. Traduction du mot (« TRADUCTION ») : 34/40 → **28/34** sous 640 pt de haut (« petit écran », §8.3) ; gaps du verso 14 → 12.
+4. Indice de défilement : dégradé de 30 pt blanc → transparent en bas de la zone, **visible seulement tant qu'il reste du contenu** (au `onScroll` / `onContentSizeChange`), `pointerEvents="none"`, sans librairie (3 ou 4 bandes `rgba(255,255,255,α)` suffisent).
+5. Mesures (aperçu) : à **320×568**, ≈ 304 pt utiles dans la carte → un exemple court défile déjà de ≈ 40 pt, un exemple de 120 caractères de ≈ 110 pt ; à **360×740** (≈ 480 pt utiles) tout tient, y compris le cas long. Boutons d'évaluation visibles et actifs dans tous les cas ; police agrandie : même mécanisme, boutons l'un sous l'autre (§8.3) et défilement plus long.
+
+**Ligne `DailyWordRow`** (liste sur fond `surface`) : on groupe (gap 4) la ligne d'exemple EN et sa traduction, dessous :
+- ligne EN : inchangée (`body` italique `inkMuted`, 🔊 à droite) ;
+- ligne FR : **15/22, 600, non italique, `primaryInk`** (11,4:1 sur blanc), préfixée du drapeau 🇫🇷 (14 pt, `accessible={false}`), retrait à droite de 52 pt pour rester dans la colonne de la phrase (la traduction n'a pas de 🔊), guillemets « » comme au verso. Pas de libellé texte (200 lignes : on économise une ligne) ; le sens est porté par drapeau + roman + guillemets + position, et par le libellé d'accessibilité.
+- Hauteur de ligne : +1 à 4 lignes ; la liste virtualisée (`FlatList`) mesure déjà dynamiquement.
+
+**Cohérence TTS (RG-162)** : les deux 🔊 (mot, phrase) lisent l'anglais uniquement (`en-US`). La traduction n'a **ni bouton ni zone tactile** (texte non pressable) ; le 🔊 de la phrase reste aligné sur la phrase anglaise (première ligne de l'encart), loin du bloc français pour ne pas suggérer qu'il le lit. Libellé inchangé « Écouter la phrase d'exemple ».
+
+**Accessibilité (RG-163)**
+- `Text` de la traduction : `accessibilityLanguage="fr-FR"` (iOS) ; texte seul dans son `Text` pour que la voix change de langue ; libellé `accessibilityLabel` = « Traduction de l'exemple : {exampleFr} ».
+- Annonce au retournement : « Traduction : {fr}. Exemple : {example}. Traduction de l'exemple : {exampleFr}. » (une seule annonce ; le texte français n'existe pas dans l'arbre d'accessibilité avant le retournement : le rendu est conditionné à `flipped`, comme `word.fr`).
+- Ligne « Mots du jour » : libellé de la ligne étendu (« … Exemple : {example}. Traduction de l'exemple : {exampleFr}. Catégorie …, niveau …. {Su|À revoir}. »), les `Text` visuels restent `no-hide-descendants` pour éviter la double lecture.
+- Taille de police système respectée (`allowFontScaling`), pas de limite de lignes ; ordre de lecture EN puis FR.
+- **« Réduire les animations »** : rien à adapter, la traduction est du texte statique de la face ; le retournement garde son fondu 150 ms. Aucun fondu séquentiel ou décalé pour la traduction.
+
+## v1.2.2 Libellés mis à jour (liste exhaustive avant → après)
+
+Toute espace avant « ! ? : ; » est une **U+00A0** (`typographie.test.ts`). Le nombre ne s'écrit **pas en dur** : `SESSION_SIZE` / `dailyGoal` (RG-145).
+| Où (code) | Avant | Après |
+|---|---|---|
+| Accueil, 0 mot vu (`components/messages.ts`, §5.1) | « Salut␣! Prêt pour tes 10 premiers mots␣? » | « Salut␣! Prêt pour tes `${SESSION_SIZE}` premiers mots␣? » → rendu « …15 premiers mots␣? » |
+| Apprendre (`app/(tabs)/learn.tsx`, §5.2) | « 10 cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore. » | « 15 cartes tirées… » (`{SESSION_SIZE} cartes tirées…`) |
+| Apprendre, pool réduit | « Ta session contiendra {k} cartes. » (si k < 10) | idem, seuil k < 15 (déjà `SESSION_SIZE`) |
+| Session, compteur (header) | « n/10 » (`{index+1}/{total}`) | « n/15 » : dérivé de `total`, aucun changement de code |
+| Carte, recto (« Carte {n} / {N} ») | « Carte 3 / 10 » | « Carte 3 / 15 » : dérivé |
+| Récap de session (§5.4) | « {x} / 10 mots que tu savais » | « {x} / 15 » : N = taille de la session (k si pool réduit) |
+| Accueil, « Encore {r} cartes et l'objectif du jour est dans la poche 💪 » | r = 10 − x | **texte inchangé**, r = 15 − x (15 un jour sans carte) |
+| Anneau / récap objectif | « {x} / 10 » | « {x} / 15 » (objectif par défaut) ; « Objectif atteint ✅ » inchangé |
+| Exemple de dépassement (§5.1, §8.3) | « 15 / 10 » | « 20 / 15 » |
+| Réglages, objectif (§5.9) | 10 / 20 / 30 | **10 / 15 / 20 / 30**, 15 par défaut ; libellés a11y « 15 cartes par jour » ; `caption` inchangée |
+| §3.2 `caption` (exemple) / `score` | « Carte 3 / 10 » · « 8 / 10 » | exemples lus « Carte 3 / 15 » · « 12 / 15 » (documentation uniquement) |
+| Test hebdo (« vus/10 », « Étudie encore {X} mots ») | seuil 10 | **inchangé** (RG-152) |
+
+Aucun libellé contractuel de §8.4 n'est modifié.
+
+## v1.2.3 Sélecteur d'objectif à 4 options (§4.13, §5.9)
+
+`SegmentedControl` inchangé, 4 valeurs [10, 15, 20, 30]. **Tient sur 320 pt** : largeur utile 320 − 2 × 16 (marges) = 288 ; − 2 × 4 (padding piste) − 3 × 4 (gaps) = 268 → **67 pt par segment** (≥ 44 pt cible tactile, hauteur 48), libellé à 2 chiffres en `h3` 17/22 (≈ 20 pt), marge > 40 pt de chaque côté. Police à 160 % : ≈ 33 pt, tient encore. Pas de passage en liste ni en deux lignes. Le segment actif « 15 » est l'état par défaut ; la `caption` « Nombre de cartes à réviser chaque jour » est inchangée.
+
+## v1.2.4 Pour le Développeur / QA
+1. Fichiers concernés côté UI : `Flashcard.tsx` (`FlashcardWord.exampleFr?`, encart, ScrollView, annonce), `DailyWordRow.tsx` (prop `exampleFr?`, ligne FR, label), `messages.ts`, `learn.tsx`. Aucune dépendance, aucun jeton.
+2. QA, captures à comparer à `apercu-v12.png` : verso court/long à 320×568 et 360×740 (boutons visibles), verso identique en passe de révision, ligne « Mots du jour » avec exemple long, Réglages à 320 pt (4 segments, « 15 » actif), police agrandie.
+3. Point à signaler au PM : la hauteur minimale du verso à 320×568 impose un défilement interne même pour un exemple court (≈ 40 pt) ; c'est le compromis retenu pour garder les boutons toujours accessibles (RG-164).
+
+## Validation v1.2
+- Design v1.2 : **à valider par le client** sur la base de `docs/design/apercu-v12.png`. Le développement peut démarrer (spec et décisions D-09 → D-18 déjà approuvées).
+
+### Validation Client — v1.2
+✅ Design v1.2 approuvé (traduction sous la phrase d'exemple, objectif 10/15/20/30).
