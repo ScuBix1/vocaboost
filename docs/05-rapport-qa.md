@@ -434,3 +434,121 @@ Commit re-testé : `2edae16`, « Corrections recette design v2 (V2-01 à V2-07) 
 **Verdict final : prêt.** Aucun bug critique ni majeur ouvert. V2-01 à V2-07 sont corrigés, sans régression fonctionnelle ni gêne pour un usage rapide normal. RT2-01, RT2-02 et les points cosmétiques à 320 pt peuvent suivre dans une version corrective.
 
 **Réserve maintenue** (§7.5) : le passage sur appareil Android **et** iOS reste non testable ici (mode avion, arrêt forcé, VoiceOver/TalkBack, « Réduire les animations » natif, rendu de V2-03 avec SF Pro et Roboto). Il doit être fait avant la remise au client.
+
+---
+
+# Recette v1.1 — Mots du jour
+
+Commit testé : `8fb7c76` (« Ajoute « Mots du jour »… »). Références : spec §10 à §15 (RG-100+, US-11 à US-16, D-01 à D-08), design « v1.1 », `docs/design/maquettes-revision.html`, `apercu-revision.png`, `rendu-revision.png`. Aucun code applicatif modifié ; un seul fichier ajouté : `src/__tests__/qa-review.test.tsx` (5 tests dont 1 `test.failing`).
+
+## 1. Méthode
+
+| Élément | Résultat |
+|---|---|
+| Jest | 24 suites, **246 tests verts** (241 + 5 QA, dont 1 `test.failing` pour V11-01). Idem sous `TZ=Pacific/Auckland`, `America/Sao_Paulo`, `Europe/Paris`. |
+| `tsc --noEmit` | 0 erreur. |
+| Lint | **Non testable** : `expo lint` ne trouve pas de config ESLint et tente d'installer des paquets (réseau refusé). `package.json` intact. |
+| Web réel | `expo export --platform web` (sortie hors projet), Chromium/Playwright à **390×844, 360×740, 320×568** (+ 360×740 avec `prefers-reduced-motion`), état injecté dans `localStorage`, horloge pilotée par `page.clock`. 0 erreur console (hors l'avertissement `useNativeDriver` existant), 0 erreur d'hydratation, **0 requête réseau externe** (seuls `/`, favicon et les assets locaux). `dist/` et temporaires supprimés. |
+| Code | Relecture adversariale de `dailyWords.ts`, `useReviewStore.ts`, `review.tsx`, `review-run.tsx`, `review-result.tsx`, des points d'entrée et de `Button`. |
+
+## 2. Intégrité (point critique) : **conforme**
+
+Le store de révision (`useReviewStore`) n'a pas de `persist` et n'appelle jamais une action de `useLearnerStore` ; les trois écrans ne font que lire `progress`. Preuve par observation sur le web (390×844, état : 7 mots du jour de boîtes 0 à 5, 2 mots d'hier, historique de test, série 2, objectif 7/10) : `localStorage` comparé octet par octet à l'état de base après chaque scénario, et espion sur `Storage.setItem/removeItem/clear`.
+
+| Scénario | `localStorage` identique | Écritures dues à la révision |
+|---|---|---|
+| Passe complète 100 % « Retenu » (depuis l'Accueil) | oui | 0 |
+| « Refaire tous » en mixte (3/7) puis « Refaire les difficiles » x3 (4, 1, 1 mot) | oui | 0 |
+| « Quitter » en cours de passe | oui | 0 |
+| Rechargement en cours de passe (retour sur `/review`, pas de reprise) | oui | 0 |
+| Chargement direct de `/review-run` et `/review-result` (redirigés vers `/review`) et `/review` | oui | 0 |
+| Session réelle de 10 cartes, récap, liste, passe 0/10, refaire, quitter, retour navigateur | oui | 0 |
+
+Texte de l'Accueil (objectif « 7 / 10 », série, maîtrisés, état du test) identique avant/après ; après la session réelle, « 10 / 10 » et série 1 inchangés par la révision. La seule écriture observée est celle de l'hydratation au chargement (contenu identique, comportement v1.0). Côté Jest : progression gelée en profondeur (`Object.freeze`) acceptée par `getTodayWords`, `startReviewPass`, `answerReviewCard`, `hardWords`, `buildReviewQueue` (aucune mutation) ; tirage de session, sélection du test, `STORAGE_VERSION = 1` vérifiés par les tests du Développeur (relus : valides, aucun affaibli).
+
+## 3. Matrice des critères d'acceptation
+
+| AC | Verdict | Preuve |
+|---|---|---|
+| 11.1 | OK | Web : 7 mots du jour + 2 d'hier → 7 ; doublons impossibles (une entrée par id) ; Jest Dev. |
+| 11.2 | OK | `qa-review` : un test sur un mot vu hier ne change pas `lastSeenAt` ; liste inchangée. |
+| 11.3 | OK | Bornes 23:59:59.999 / 00:00:00.000 (Jest) ; fuseaux Auckland, Los Angeles, Paris vérifiés à la main sur le web (1, 1, 2 mots attendus et obtenus). Changement d'heure : tests du Dév. verts sous 3 TZ. |
+| 11.4 | OK | Web : EN, FR, exemple, catégorie, niveau, badge « Su » ou « À revoir » (glyphe + mot). |
+| 11.5 | OK | Tests du Dév. ; liste web : « À revoir » en tête. |
+| 11.6 | OK | Web : filtres Voyage + B2 actifs → les 6 mots du jour sont listés. |
+| 11.7 | OK | `lastSeenAt` invalide/futur, `seenCount` 0, id inconnu : ignorés (Jest). |
+| 11.8 | OK | Web : réinitialisation par Réglages → état vide, progression vide. |
+| 12.1 | OK | Première carte au recto, sans écran intermédiaire. |
+| 12.2 | OK | Boutons de choix absents avant retournement (arbre d'accessibilité web). |
+| 12.3 | OK | Tests du Dév. (boîtes {0,0,3,5}). |
+| 12.4 | OK | Passes de 7 et 200 cartes : « n / N » exact ; un mot une fois. |
+| 12.5 | OK | « 160 / 200 retenus » et 40 mots listés (200 cartes, 1 sur 5 « à revoir encore ») ; « 3 / 7 », « 0 / 10 ». |
+| 12.6 | OK | N = 1 : « 1/1 » puis « Bravo, tout est retenu ». N = 200 : liste prête en 0,4 s (18 lignes montées, virtualisée), défilement fluide, passe complète en 142 s de clics, 0 erreur ; barre à 6,0 % au départ. |
+| 12.7 | OK | « Quitter » sans confirmation, retour à `/review`, stockage inchangé. |
+| 12.8 | OK | Horloge pilotée : passe démarrée à 23:58 terminée après minuit (5/5), « Refaire tous » reprend l'instantané (1/5) ; au retour sur la liste, état vide. |
+| 13.1 | OK | Passes de 4, 1, 1 mots = sous-ensemble précédent. |
+| 13.2 | OK | « Bravo, tout est retenu », pas de bouton difficiles, « Refaire tous » primaire. |
+| 13.3 | OK | 3 passes enchaînées ; rien de persisté (rechargement : retour liste). |
+| 14.1 à 14.5 | OK | Section 2. |
+| 15.1 | OK | Carte absente à n = 0 (nouvel utilisateur et mots d'hier seulement), « Commencer une session » en 1 tap. |
+| 15.2 | OK | « Mots du jour (0) », état vide, bouton fonctionnel (double clic : une seule session). |
+| 15.3 | OK | Récap : « Revoir les mots du jour » ouvre les 10 mots ; « Retour » et « Quitter » reviennent au récap ; « Nouvelle session » et « Accueil » inchangés. |
+| 15.4 | OK (partiel) | Aucune requête réseau observée ; mode avion réel non testable ici. |
+| 16.1 | Partiel | Jest (en-US, 0,9, exemple) vert ; boutons présents sur ligne et carte. Lecture réelle non testable (pas de voix en Chromium headless). |
+| 16.2 | Partiel | Arrêt au changement de carte, au « Quitter » et au démontage vérifié en Jest ; appui répétés et absence de voix non testables sur appareil. |
+
+## 4. Cas limites
+
+- **Minuit** : passe figée OK ; liste recalculée au focus et au retour au premier plan OK ; mais voir V11-02 (écran resté ouvert).
+- **Mot évalué hier seulement** : absent (OK). **Évalué plusieurs fois** : une seule ligne (OK). **Test hebdomadaire** : ne crée aucun mot du jour (`applyTestAnswers` ne touche pas `lastSeenAt`, test `qa-review`).
+- **Filtres actifs, réinitialisation, 1 mot, 200 mots, tous « Retenu », état vide** : OK (voir matrice).
+- **Navigation** : chargement direct de `/review-run` et `/review-result` : redirection propre vers `/review`, sans erreur d'hydratation. Retour navigateur depuis la liste : Accueil.
+- **Double clic** (délais 0, 60, 120, 200, 280 ms ; 3 tailles) : « Revoir » (Accueil) et carte « Mots du jour » (Apprendre) : une seule entrée dans l'historique ; « Retourner », « Retenu », « Refaire tous », « Accueil » du résultat, « Commencer une session » de l'état vide : OK. **« Réviser ces mots » et « Refaire les mots difficiles » : voir V11-01.** À 280 ms, le 2e clic sur « Retenu » peut retourner la carte suivante (la garde dure 300 ms ; comportement identique à la session, sans conséquence).
+
+## 5. Non-régression
+
+BUG-01 à BUG-05, RT-01, V2-01 à V2-07 : tests existants verts (23 suites inchangées) ; double clic sur « Retourner » et sur le dernier « Retenu » (garde d'arrivée) tiennent ; 0 erreur d'hydratation sur `/review*` ; session de 10 cartes puis récap fonctionnent (objectif 10/10, série 1) ; `typographie.test.ts` vert (espaces insécables). Le test hebdomadaire n'a pas été rejoué dans le navigateur (graine d'état insuffisante) : couvert par Jest.
+
+## 6. Conformité visuelle et accessibilité
+
+- **Maquettes** : liste, recto, verso, fin de passe, état vide, carte Accueil conformes (écarts mineurs de rendu police système, connus). Aucun débordement horizontal aux 3 tailles ; « Retenu » à droite, « À revoir encore » en secondaire, pas de rouge.
+- **Contrastes AA** (calculés sur les tokens) : « À revoir » 7,74:1 ; « Su » 5,63:1 ; texte atténué sur fond 6,46:1 ; Grape sur fond 5,42:1 (« Quitter », « Retour », « Revoir les mots du jour ») ; note 9,66:1 ; blanc sur « Retenu » 4,99:1 ; blanc sur Grape 5,85:1 ; chips de catégorie 6,9 à 7,2:1. Tous conformes (AA 4,5:1).
+- **Indicateur** « Su / À revoir » : glyphe + mot + couleur, jamais la couleur seule (OK).
+- **Accessibilité** : Vobi absent de l'arbre d'accessibilité web sur les 4 écrans ; barre de progression nommée ; boutons « Retenu », « À revoir encore », « Écouter le mot bed » correctement nommés ; carte retournée désactivée. Réserve web (V11-04). « Réduire les animations » : fondu seul, pas de glissement ; écrans sans animation propre ; OK.
+- **Écarts signalés par le Développeur** : (1) fondu translucide au-dessus de « Réviser ces mots » : **accepté** (aplat 16 pt à 85 %, léger bord sur les lignes qui passent dessous, purement cosmétique) ; (2) carte « À revoir encore » sous les boutons : **qualifié V11-03** ; (3) barre à 6 % minimum seulement à partir de 50 cartes : **accepté** (mesuré 13,3/221,7 px = 6,0 % à N = 200 ; à N petit la barre part vide comme en session, cohérent).
+
+## 7. Bugs
+
+### V11-01 — Mineur (limite majeur) : le double tap sur « Réviser ces mots » (et « Refaire les mots difficiles ») retourne la 1re carte
+- **Repro** : `/review` avec ≥ 1 mot, double clic rapide au centre de « Réviser ces mots » (0 à 280 ms entre les clics) ; idem « Refaire les mots difficiles » sur l'écran de fin. Constaté à 390×844, 360×740, 320×568.
+- **Attendu** : la carte 1 s'affiche au recto (AC-12.1 ; esprit des verrous BUG-01/BUG-02 et de la garde d'arrivée V2).
+- **Obtenu** : le 2e clic tombe sur « Retourner » de l'écran qui vient d'apparaître au même endroit : la traduction est révélée sans effort, ce qui annule le rappel actif de la 1re carte de chaque passe. Aucun effet sur les données. « Refaire tous » n'est pas touché à ces tailles (bouton à un autre emplacement), mais la géométrie reste fragile.
+- **Cause** : `src/app/review-run.tsx` (`flip`, ~l. 78-82) n'a ni garde d'arrivée ni verrou posé au montage ; `Button` et `useActionGuard` de l'écran précédent ne protègent pas le nouvel écran.
+- **Piste** : `useArrivalGuard` dans `flip` (ou `lock()` au montage de `ReviewRun`), sans effet visuel.
+- **Test** : `qa-review.test.tsx` « le 2e tap d'un double tap sur « Réviser ces mots »… » (`test.failing`, à passer en test normal après correction).
+
+### V11-02 — Mineur : écran « Mots du jour » laissé ouvert à minuit
+- **Repro** : ouvrir `/review` à 23:58 (5 mots étudiés à 23:50), laisser passer minuit sans changer d'écran ni quitter l'app.
+- **Attendu** : liste recalculée (RG-102, « à chaque affichage »), « Réviser » indisponible.
+- **Obtenu** : « 5 mots étudiés aujourd'hui » reste affiché ; « Réviser ces mots » lance une passe de 5 mots d'hier. La liste se met à jour au focus et au retour au premier plan (OK). Même limite sur le compteur de l'Accueil.
+- **Fichier** : `src/hooks/useNow.ts` (aucun minuteur), `src/app/review.tsx` `start` (~l. 62).
+- **Piste** : dans `start`, recalculer `getTodayWords(…, new Date())` avant de lancer ; ou un minuteur jusqu'au prochain minuit. Risque faible (aucune donnée touchée).
+
+### V11-03 — Mineur : la liste « À revoir encore » est masquée sous les boutons fixés (petits écrans)
+- **Repro** : fin de passe avec 3 mots à revoir à 360×740 : le 3e mot est caché sous « Refaire les mots difficiles » ; à 320×568, la zone défilante ne fait que ~376 px et la carte entière est sous la ligne de flottaison (Vobi, titre, score et note occupent l'espace).
+- **Attendu** : le bilan (mots à revoir) lisible ou signalé comme défilant ; maquette : liste visible.
+- **Obtenu** : contenu atteignable en défilant, aucun indice (pas de fondu, pas de coupure franche).
+- **Fichier** : `src/app/review-result.tsx` (Vobi 120, note, `footer` fixe).
+- **Piste** : Vobi 80 quand la liste existe et hauteur < 760, ou boutons dans le flux défilant sous 640 pt de haut.
+
+### V11-04 — Observation (non testable sur appareil) : accessibilité web des lignes
+Sur react-native-web, `importantForAccessibility`/`accessibilityElementsHidden` sont ignorés : l'arbre web lit puces, traduction et exemple séparément et n'applique pas le libellé d'ensemble de la ligne. Mobile (VoiceOver/TalkBack) non vérifié. Même limite que la v2 pour Vobi (corrigée par `aria-hidden`).
+
+### V11-05 — Observation : `useReviewStore.clear()` n'est appelé nulle part dans l'application
+Une passe abandonnée ou terminée reste en mémoire jusqu'à la fermeture. Conséquence limitée (Web : « Suivant » du navigateur pourrait rouvrir une passe ; la réinitialisation de la progression ne vide pas l'ancien résultat). Rien de persisté. Non reproduit dans le navigateur.
+
+## 8. Verdict v1.1
+
+**Prêt**, sous réserve. Aucun bug critique ni majeur. L'exigence centrale (lecture seule) est démontrée : stockage identique octet pour octet après passe complète, difficiles x3, abandon, rechargement, chargements directs et session réelle ; 0 écriture ; tests gelés en profondeur. Tous les AC de US-11 à US-15 sont OK ; US-16 partiel faute de voix.
+
+À corriger si possible dans le même lot : **V11-01** (3 lignes de code) ; V11-02 et V11-03 peuvent suivre. Réserves inchangées (§7.5) : appareils Android et iOS, mode avion réel, TTS, lecteurs d'écran natifs, rendu avec SF Pro et Roboto, lint (config ESLint absente).
