@@ -10,9 +10,9 @@ Client → Chef de Projet → Designer → Développeur → Testeur QA → Appro
 
 ## Fonctionnalités
 
-- **Apprentissage aléatoire** : sessions de 10 cartes tirées au hasard dans une banque de 200 mots
+- **Apprentissage aléatoire** : sessions de 15 cartes tirées au hasard dans une banque de 200 mots
   (10 catégories, niveaux A1 → B2). Le tirage est pondéré par des **boîtes de Leitner** (0 à 5) :
-  les mots mal connus reviennent plus souvent. Au plus 3 nouveaux mots par session.
+  les mots mal connus reviennent plus souvent. Au plus 5 nouveaux mots par session.
 - **Cartes** : mot anglais → retourner → traduction + phrase d'exemple → « Je savais » / « Je ne savais pas ».
   Prononciation via la synthèse vocale (expo-speech).
 - **Progression** : mots vus, mots maîtrisés (boîte ≥ 4), % global et par catégorie, série de jours,
