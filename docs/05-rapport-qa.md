@@ -552,3 +552,137 @@ Une passe abandonnée ou terminée reste en mémoire jusqu'à la fermeture. Cons
 **Prêt**, sous réserve. Aucun bug critique ni majeur. L'exigence centrale (lecture seule) est démontrée : stockage identique octet pour octet après passe complète, difficiles x3, abandon, rechargement, chargements directs et session réelle ; 0 écriture ; tests gelés en profondeur. Tous les AC de US-11 à US-15 sont OK ; US-16 partiel faute de voix.
 
 À corriger si possible dans le même lot : **V11-01** (3 lignes de code) ; V11-02 et V11-03 peuvent suivre. Réserves inchangées (§7.5) : appareils Android et iOS, mode avion réel, TTS, lecteurs d'écran natifs, rendu avec SF Pro et Roboto, lint (config ESLint absente).
+
+
+---
+
+# Recette v1.2 — 15 cartes par session et traduction des exemples
+
+Commit testé : `3e24ee2` (« v1.2 : sessions de 15 cartes et traduction française des exemples »). Références : spec §16 à §22 (RG-140 → 164, US-17 à US-23, D-09 à D-18), design « v1.2 », `docs/design/apercu-v12.png` et `rendu-v12.png`. Aucun code applicatif ni `words.ts` modifié ; deux fichiers de test ajoutés : `src/domain/__tests__/qa-v12-session.test.ts` (grille complète RG-142) et `src/domain/__tests__/qa-v12-traductions.test.ts` (1 `test.failing`, V12-01).
+
+## 1. Méthode
+
+| Élément | Résultat |
+|---|---|
+| Jest | 29 suites, **331 tests verts** (327 du Développeur + 3 QA verts + 1 `test.failing` pour V12-01). |
+| `tsc --noEmit` | 0 erreur. Lint : non testable (config ESLint absente, comme en v1.1). `package.json` et `package-lock.json` intacts (md5 vérifié). |
+| Web réel | `expo export --platform web` servi hors projet ; Chromium/Playwright à 390×844, 360×740, 320×568 (+ 360×640, 375×667 et un proxy « police agrandie » 246×437). État injecté dans `localStorage` (`vocaboost-store`). 0 erreur de page. `dist/` et temporaires supprimés. |
+| Tirage | Formule RG-142 réécrite indépendamment et comparée à `composeSession` sur **toute la grille n = 0..40 × r = 0..40** (1 681 cellules × 3 graines) : taille, unicité, comptes nouveaux/révisions, tous conformes. Les 9 lignes du tableau de la spec passent. |
+| Relecture | 200 `exampleFr` relues une à une, avec le mot, le champ `fr` et la phrase anglaise ; contrôles typographiques automatiques en plus (voir §6). |
+
+## 2. Matrice des critères d'acceptation
+
+OK = observé sur le web ou démontré par un test relu ; (J) = couvert par les tests Jest du Développeur, relus, non rejoués dans le navigateur.
+
+| AC | Résultat | Preuve |
+|---|---|---|
+| 17.1 | OK | Session de 15 cartes distinctes, compteur « 1/15 » à « 15/15 » (web, 9 états différents). |
+| 17.2 | OK | 12 vus / 40 vus / 195 vus : 5 nouveaux + 10 révisions (classement par `id` dans le navigateur). |
+| 17.3 | OK | Grille complète ci-dessus ; web : 3 vus → 12 + 3, 198 vus → 2 + 13, 200 vus → 0 + 15. |
+| 17.4 | OK | Aucun mot vu : 15 nouveaux, 0 révision (web). |
+| 17.5 | OK | Pool 11 → 11 cartes « 8 / 11 » ; pool 5 → 5 cartes « 4 / 5 » ; texte « Ta session contiendra 11 cartes. » ; k = 0 : (J). |
+| 17.6 | OK | Invariants sur grille QA ; poids RG-24 et mélange inchangés (code non modifié, tests du Dév. relus). |
+| 17.7 | OK | Accueil « Prêt pour tes 15 premiers mots ? », Apprendre « 15 cartes tirées au hasard… ». Grep ciblé : aucun « 10 » codé en dur dans les textes de `src/` hors tests (`messages.ts` et `learn.tsx` utilisent `SESSION_SIZE`). Les « 10 » restants du code sont des styles (px) et `TEST_MIN_SEEN` (RG-152, voulu). Tests : seuls restent des 10 légitimes (props de composants, test hebdomadaire, `sessionResultSubtitle(5, 10)`), plus un titre de test périmé (V12-02). |
+| 17.8 | OK | Récap « 10 / 15 mots que tu savais » après 15 cartes ; « 8 / 11 » en pool réduit. |
+| 18.1 | OK | Installation neuve : `dailyGoal` 15, version 2 écrite, Réglages 10/15/20/30 avec 15 actif (rendu 320 px : segments 67 pt de large) ; 10 choisi conservé après relances. |
+| 18.2 | OK | Session complète sur jour vierge : « 15 / 15 », « Objectif atteint ✅ » ; « 10 / 15 » et « Encore 5 cartes » : (J) `v12-textes`. Pool 11 : « 11 / 15 », « Encore 4 cartes ». |
+| 18.3 | OK (J) | Dépassement 20 / 15, test et révision n'incrémentent pas ; révision réelle : stockage identique octet pour octet. |
+| 18.4 à 18.8 | OK | Voir §3 (migration prouvée sur le web). |
+| 18.9 | OK (J) | `migration-v2` / Réglages : réinitialisation conserve l'objectif. Non rejoué sur le web. |
+| 18.10 | OK | Store v1 avec 10 cartes du jour et objectif 10 → Accueil « 10 / 15 ». |
+| 19.1 | OK | Web : 9 vus → « Étudie encore 1 mot » ; 10 vus → 10 questions ; 15 vus → 15 ; 50 vus → 20. |
+| 19.2 | OK | Après une première session de 15 nouveaux, le test est disponible, « 15 questions », compteur 1/15 (web). |
+| 19.3 | OK | Accueil « Mots du jour : 15 » après la session ; liste 200 mots sans doublon (200/200 lignes vues en défilant) ; suites v1.1 vertes sans modification. |
+| 20.1 | OK | 200/200 versos : traduction visible sans action, dans l'encart sous la phrase anglaise ; avant retournement le texte français n'existe pas dans le DOM (0/200). |
+| 20.2 | OK | Passe de révision (200 mots étudiés, 25 cartes à 390 px et 25 à 320 px) : même verso, FR correct, absent avant retournement. |
+| 20.3 | OK | Espion `speechSynthesis` sur le web : verso = 2 énoncés (mot, phrase) en `en-US`, débit 0,9 ; liste idem ; aucun bouton dans le bloc français (0/200 versos, 0/200 lignes). |
+| 20.4 | OK, réserve | 320×568 : 200/200 versos, bouton « Je savais » et « Je ne savais pas » dans la fenêtre et atteignables (`elementFromPoint`), FR atteignable au bas du défilement, 0 texte tronqué, 0 débordement horizontal. Réserve UX V12-03. Police agrandie réelle : non testable sur le web (`fontScale` = 1) ; proxy 246×437 : boutons atteignables, 2 débordements horizontaux (mots de 9 et 10 lettres dans la ligne du mot au verso, en dessous de 320 pt, hors périmètre). |
+| 20.5 | OK | Test hebdomadaire complet à 10, 15 et 20 questions (réponses, retours, résultat, mots ratés) : 0 occurrence d'un `exampleFr` ni d'une phrase d'exemple. |
+| 20.6 | OK web | Hors ligne simulé : verso et traduction affichés, **0 requête réseau**. Mode avion réel : non testable. |
+| 20.7 | OK (J) | `exemple-fr.test.tsx` (ligne et carte sans bloc, sans plantage) ; relu. |
+| 21.1 | OK | 200 lignes : exemple EN puis traduction dessous ; ordre, badges, virtualisation inchangés. |
+| 21.2 | OK | 2 boutons 🔊 par ligne, lisent le mot et l'exemple anglais. |
+| 22.1 | OK | `lang="fr-FR"` sur 200/200 versos et lignes ; annonce « Traduction de l'exemple : … » (J). |
+| 22.2 | OK web | `aria-label` de la ligne contient la traduction sur 200/200 lignes. Limite V11-04 inchangée (arbre web lu en plusieurs morceaux, mobile non vérifié). |
+| 22.3 | OK | `primaryInk`/`primarySoft` 9,66:1 ; `primaryInk`/blanc 11,41:1 ; libellé `inkMuted`/`primarySoft` 5,90:1. |
+| 23.1 | OK | Contrôles RG-157 verts 200/200, test négatif présent (J). |
+| 23.2 | OK | `typographie.test.ts` vert. |
+| 23.3 | **KO** | Relecture : 1 contresens probable (V12-01) ; critère « 0 contresens » non atteint tant que non corrigé. |
+
+Non-régression : test hebdomadaire inchangé (seuil 10, N = min(20, vus), formules 9/10/15/50 vérifiées) ; « Mots du jour » inchangé ; révision en lecture seule (stockage identique octet pour octet après une passe de 12 mots) ; verrous anti-double-tap rejoués dans le navigateur : BUG-01/02 (double tap sur « Retourner » à 4 abscisses : 0 évaluation par le 2e tap ; double tap sur « Je savais » : une seule carte avancée, `cardsPerDay` = 15 exactement), double tap sur le dernier « Je savais » : reste sur le récap (V2-01), double tap « Réviser ces mots » : carte non retournée (V11-01), double tap « Suivant » du test : question 2/20 non répondue (V2-01/RT-01).
+
+## 3. Migration du store (point critique) : **conforme**
+
+Méthode : état écrit dans `localStorage['vocaboost-store']` (`{"state":…,"version":N}`), page rechargée, relecture du disque et de l'interface (Accueil, Réglages). État « riche » v1 : 10 mots dans les boîtes 0 à 5, 4 jours actifs, `cardsPerDay` (4, 12, 15, 10 aujourd'hui), meilleure série 5, historique de test, filtres restreints. La comparaison de la progression ignore l'ordre normalisé par `sanitize` (catégories et niveaux remis dans l'ordre canonique, comportement antérieur).
+
+| Cas | Résultat observé | Verdict |
+|---|---|---|
+| v1, `dailyGoal` 10 | 15 ; version 2 écrite dès le chargement ; progression, jours actifs, `cardsPerDay`, série, historique, filtres identiques ; Réglages « 15 » actif ; Accueil « 10 / 15 » | OK |
+| v1, 20 puis 30 | 20 puis 30 conservés, version 2, reste identique | OK |
+| v1, 15 (impossible en v1) | 15 | OK |
+| v1, absent / 25 / « abc » / null / « 10 » (chaîne) / 10,5 / 0 / -10 | 15 dans les 8 cas, reste identique, version 2 | OK |
+| Après migration : choisir 10 puis 4 × (navigation + rechargement) + nouveau contexte avec le même stockage | 10 conservé, Réglages « 10 » actif | OK (migration non rejouée par `sanitize`) |
+| v2 avec `dailyGoal` 10, 3 chargements | 10 conservé | OK |
+| Version 3 et 99 avec 10 et un champ inconnu | Pas de plantage, 10 conservé, progression intacte ; 2e chargement identique. Réserve V12-04 (version réécrite à 2, champ inconnu supprimé) | OK, réserve |
+| JSON invalide, chaîne vide, `[1,2]`, `null`, `state` non objet, `state: null` en v1 | Aucun plantage, état vierge, objectif 15 (« 0 / 15 ») | OK |
+| Sans clé `version`, ou version en chaîne « 1 » | Aucune conversion : 10 conservé (« 10 / 10 »). Un store v1 réel porte toujours `version: 1`, donc sans impact | Observation |
+| Installation neuve | 15, version 2 écrite | OK |
+
+## 4. Bugs
+
+### V12-01 — Majeur : « Je travaille à la bibliothèque » traduit « I study at the library » (contresens probable)
+- **Repro** : mot `library` (A2, École), verso d'une carte, de la passe de révision ou ligne « Mots du jour ».
+- **Attendu** : le sens « étudier » (RG-156 : fidélité ; RG-158 : 0 contresens).
+- **Obtenu** : « Je travaille à la bibliothèque le samedi. » ; un francophone lit « I work at the library » (emploi). Un apprenant retient un faux sens de la phrase.
+- **Fichier** : `src/data/words.ts:116`.
+- **Correction** : « J’étudie à la bibliothèque le samedi. » (ou « Je révise… »). Une ligne, aucun test existant ne dépend de ce texte.
+- **Test** : `qa-v12-traductions.test.ts` (`test.failing`, à passer en `it` après correction).
+- **Impact** : bloque AC-23.3 (0 contresens) ; sinon sans effet fonctionnel.
+
+### V12-02 — Mineur : libellés « 10 / 20 / 30 » périmés dans la doc et un titre de test
+- `README.md:19` (« objectif quotidien (10 / 20 / 30 cartes) »), `docs/03-design.md:319` (SegmentedControl « objectif 10/20/30 ») et `:414` (« 10 / 20 / 30 », que le tableau v1.2.2 ligne 866 corrige sans corriger les sections d'origine), `src/__tests__/flows.test.tsx:141` (titre « objectif modifiable en 10/20/30 », le corps teste 20 ; le 15 est testé par `v12-textes`). Aucun effet utilisateur. À aligner dans le même lot (spec §21.9 demande la mise à jour de ces lignes de design).
+
+### V12-03 — Mineur (UX, compromis de design connu) : la traduction est sous la ligne de flottaison sur petits écrans
+- **Repro** : session à 320×568, retourner n'importe quelle carte.
+- **Obtenu** : 200/200 versos défilent (dépassement jusqu'à 152 px) ; l'encart « Exemple » s'arrête sur « EN FRANÇAIS » coupé par le dégradé et la traduction n'apparaît qu'en défilant. À 360×640, 11 des 26 versos les plus longs défilent (82 px au plus) ; à 375×667, 1 sur 26 ; à 360×740 et au-dessus, aucun. Les boutons restent atteignables, le dégradé s'affiche et disparaît en bas de course, aucune troncature.
+- **Attendu** : RG-164 satisfaite (défilement interne accepté par le Designer, §v1.2.4 point 3). Sur le plus petit écran, la nouveauté de la v1.2 demande un geste de défilement par carte, contraire à l'esprit de RG-160 (« sans tap supplémentaire »).
+- **Piste (non bloquante)** : sous 640 pt, réduire encore le mot au verso (30 → 26) ou masquer la ligne « TRADUCTION » en libellé de 12 pt au profit de la traduction. À arbitrer par le Designer.
+
+### V12-04 — Mineur : une version de store future est réécrite en version 2 et ses champs inconnus sont supprimés
+- **Repro** : `localStorage` = `{"state":{…, "futureField":{"a":1}, "dailyGoal":10},"version":3}` puis lancement.
+- **Obtenu** : pas de plantage, progression et objectif conservés (RG-147.5 respectée) ; mais le disque est réécrit avec `version: 2` et sans `futureField`. Une application plus récente rouverte ensuite relancerait sa migration 2 → 3 sur des données déjà épurées.
+- **Fichier** : `src/store/useLearnerStore.ts` (`migrate` appelé pour toute version différente de 2, `merge` + `partialize` réécrivent). Comportement identique en v1.1 (version 99 → 1) : pas de régression. Risque faible (retour arrière d'application seulement).
+
+### Observations (non comptées)
+- Réglages sur le web : les 4 segments ont `role="radio"` mais aucun `aria-checked`/`aria-selected` n'est exposé (l'état sélectionné ne se lit qu'à l'écran). `SegmentedControl` n'est pas touché par la v1.2 ; mobile non vérifié.
+- Un `localStorage` corrompu est remplacé immédiatement par un état vierge (comportement v1.0/v1.1, BUG-03) ; une relecture ultérieure n'est plus possible.
+- Non testables ici : appareils Android/iOS, mode avion réel, police système agrandie réelle, lecteurs d'écran natifs, voix TTS réelles, lint.
+
+## 5. Corrections de traductions recommandées (relecture RG-158)
+
+200/200 phrases relues. **1 contresens, 0 faute, 5 retouches de style**, 3 observations de cohérence sans correction exigée. Les contrôles automatiques RG-157 sont verts et confirmés par mon recoupement : 0 apostrophe droite, 0 espace ordinaire avant « ! ? : ; » (16 occurrences, toutes en U+00A0), 0 double espace, 0 « oe » à la place de « œ », ponctuation finale identique à l'anglais, longueur maximale 72 caractères, chiffres, heures et noms propres (Londres, Rome, Dubaï, New York, Lyon, Bretagne, Écosse, Canada, XIIe) conservés, accords vérifiés (genre du sujet, participes, « Nous nous sommes perdus »), tutoiement/vouvoiement cohérents avec la situation.
+
+| Mot | Phrase EN | Traduction actuelle | Correction proposée | Gravité |
+|---|---|---|---|---|
+| library | I study at the library on Saturdays. | Je travaille à la bibliothèque le samedi. | J’étudie à la bibliothèque le samedi. | **contresens** (lu « I work at ») |
+| egg | He had a boiled egg for breakfast. | Il a mangé un œuf à la coque au petit-déjeuner. | Il a mangé un œuf dur au petit-déjeuner. | style (« à la coque » précise un mode de cuisson que l'anglais n'impose pas) |
+| chicken | We are having roast chicken for dinner tonight. | Ce soir, nous avons du poulet rôti pour le dîner. | Ce soir, nous mangeons du poulet rôti pour le dîner. | style (calque de « have », redondance « ce soir / dîner ») |
+| eat | We eat dinner at seven o’clock. | Le soir, nous mangeons à sept heures. | Nous dînons à sept heures. (ou : Nous mangeons à sept heures le soir.) | style (« dinner » perdu, « le soir » ajouté en tête) |
+| colleague | A colleague helped me with the report. | Un collègue m’a donné un coup de main pour le rapport. | Un collègue m’a aidé pour le rapport. | style (registre familier ; RG-156 : neutre) |
+| degree | She has a degree in economics. | Elle a un diplôme d’économie. | Elle a un diplôme en économie. | style (tournure usuelle) |
+
+Observations de cohérence avec le champ `fr` (acceptables, aucune correction exigée) : `tree` (« un vieux chêne » : le mot « arbre » n'apparaît pas, fidèle à « oak tree »), `day` (« Bonne journée ! » : idiomatique, « jour » absent), `recovery` (« prompt rétablissement » : formule consacrée, « guérison » absent).
+
+Autres points vérifiés sans anomalie : proverbe de `apple`, « Le lait a tourné » (`sour`), « peinent à payer » (`struggle`), « s'est déclarée » (`outbreak`), « Pour être honnête… » (`honest`), « sûre d'elle » (`confident`), « prompt rétablissement », « à l'âge de cinq ans » (`horse`), « au XIIe siècle » (`century`).
+
+## 6. Verdict v1.2
+
+**Non prêt en l'état, prêt après une correction de donnée d'une ligne** : aucun bug critique ; 1 bug majeur (V12-01, `words.ts:116`), car RG-158/AC-23.3 exigent 0 contresens ; 3 mineurs (V12-02 à V12-04). La logique est conforme : tirage 5 + 10 prouvé sur toute la grille RG-142, objectif 15 et options 10/15/20/30, récap « x / N », textes dérivés de `SESSION_SIZE`, test hebdomadaire et Mots du jour inchangés, migration v1 → v2 prouvée sur le web (progression identique, 10 → 15 une seule fois, 20/30 conservés, 10 choisi ensuite conservé, version future et corrompus sans plantage), traduction jamais au recto ni dans le test, TTS anglais seulement, verrous anti-double-tap intacts.
+
+À faire avant livraison : corriger V12-01 (et idéalement les 5 retouches de style), passer le `test.failing` en `it`. V12-02 dans le même lot ; V12-03 à arbitrer par le Designer ; V12-04 à documenter. Réserves inchangées : appareils réels, avion, police agrandie réelle, lecteurs d'écran natifs, voix, lint.
+
+### Corrections post-recette v1.2
+- V12-01 corrigé (`library` : « J’étudie à la bibliothèque le samedi. ») ; les 5 retouches de style appliquées (egg, chicken, eat, colleague, degree). Le test de non-régression est passé de `test.failing` à `test`.
+- V12-02 corrigé (README, `docs/03-design.md`, titre du test `flows.test.tsx`).
+- V12-03 : compromis de design connu et accepté (défilement du verso à 320×568). V12-04 : comportement identique à la v1.1, accepté.
+- Vérification : `tsc` 0 erreur, Jest 29 suites / 331 tests verts, plus aucun `test.failing`.

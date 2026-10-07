@@ -138,7 +138,7 @@ describe('Test hebdomadaire (US-07, US-08)', () => {
 });
 
 describe('Réglages (RG-44, RG-50)', () => {
-  it('AC-05.6 : objectif modifiable en 10/20/30', async () => {
+  it('AC-05.6 : objectif modifiable en 10/15/20/30', async () => {
     await renderRouter(routes, { initialUrl: '/settings' });
     await fireEvent.press(screen.getByTestId('segment-20'));
     expect(useLearnerStore.getState().dailyGoal).toBe(20);

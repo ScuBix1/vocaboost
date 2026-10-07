@@ -54,3 +54,7 @@ Toujours à faire avant publication : passage sur appareils iOS et Android réel
 ## Approbation — v1.1 « Mots du jour »
 ✅ **Approuvée** (rôle Client) : recette QA « prête », aucun bug critique ou majeur ouvert.
 Point mineur connu et accepté : V11-04 (accessibilité des lignes de la liste avec un lecteur d'écran sur le web, à vérifier sur appareil réel).
+
+## Approbation — v1.2 « 15 cartes par jour » et traduction des exemples
+✅ **Approuvée** (rôle Client) : recette QA, relecture des 200 traductions (1 contresens et 5 retouches corrigés), migration du réglage d'objectif vérifiée.
+Points mineurs connus et acceptés : V12-03 (défilement du verso à 320×568), V12-04 (store de version future réécrit en v2).

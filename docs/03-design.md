@@ -316,7 +316,7 @@ Annonce lecteur d'écran v1 inchangée (la phrase « ✓ Bonne réponse ! » / �
 ### 4.13 Autres
 - **Badge** : rayon 10, `caption` 900, padding 4/10 ; variantes `level` (`primarySoft`/`primaryInk`), `success` (« Réussi »), `danger` (« À retravailler »), `big` (16 pt, padding 8/14).
 - **EmptyState** : Vobi (`empty` ou `search`, 96) à la place de l'emoji 48 ; titre `h3`, message `body` `inkMuted`, action selon v1.
-- **SegmentedControl** (objectif 10/20/30) : piste `surfaceAlt` rayon 16 ; segment actif = face `primary` + lèvre `primaryLip`, texte blanc 900 ; inactif texte `ink`.
+- **SegmentedControl** (objectif 10/15/20/30 depuis la v1.2) : piste `surfaceAlt` rayon 16 ; segment actif = face `primary` + lèvre `primaryLip`, texte blanc 900 ; inactif texte `ink`.
 - **IconButton** (⚙️) : 44 × 44, rayon 14, blanc, bordure + lèvre `border`.
 - **ConfirmDialog** : `Alert.alert` natif (inchangé).
 - **Toast** : pill `ink` texte blanc, ou `successSoft`/`successInk` « Progression réinitialisée », `shadows.md`.
@@ -411,7 +411,7 @@ Comportements v1 inchangés : feedback instantané, pas d'avancement automatique
 
 ### 5.9 Réglages
 Structure v1 inchangée, habillage v2 :
-1. Section « Objectif quotidien » : SegmentedControl 3D 10 / 20 / 30 + `caption`.
+1. Section « Objectif quotidien » : SegmentedControl 3D 10 / 15 / 20 / 30 (v1.2) + `caption`.
 2. Section « Filtres des sessions » : chips niveaux ; chips catégories avec emoji ; lien « Tout sélectionner » ; aide RG-50 ; « Mots disponibles : {k} ».
 3. Section « Données » : Card `default` « 📱 Données stockées uniquement sur cet appareil. » + Button `danger` `md` « Réinitialiser ma progression » ; confirmation `Alert` v1 (« Cette action est irréversible… », « Annuler » / « Réinitialiser ») ; toast « Progression réinitialisée ».
 4. Pied : Vobi 36 + « VocaBoost v1.0 » `caption`.

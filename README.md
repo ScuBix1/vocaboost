@@ -16,7 +16,7 @@ Client → Chef de Projet → Designer → Développeur → Testeur QA → Appro
 - **Cartes** : mot anglais → retourner → traduction + phrase d'exemple → « Je savais » / « Je ne savais pas ».
   Prononciation via la synthèse vocale (expo-speech).
 - **Progression** : mots vus, mots maîtrisés (boîte ≥ 4), % global et par catégorie, série de jours,
-  objectif quotidien (10 / 20 / 30 cartes).
+  objectif quotidien (10 / 15 / 20 / 30 cartes, 15 par défaut).
 - **Test hebdomadaire** : 1 test par semaine ISO (lundi → dimanche), jusqu'à 20 questions en QCM à 4 choix
   (EN→FR et FR→EN), réussi à partir de 70 %, historique des scores. Débloqué à partir de 10 mots vus.
 - **Filtres** par catégorie et niveau, 100 % hors ligne, sans compte, données persistées localement.
