@@ -36,6 +36,17 @@ npm start          # puis ouvrir dans Expo Go (Android / iOS) ou appuyer sur "w"
 
 Stack : Expo SDK 57, expo-router, TypeScript strict, Zustand (persist + AsyncStorage), expo-speech, Jest + jest-expo.
 
+## Tester l'app
+
+| Besoin | Commande |
+|---|---|
+| Sur téléphone, sans build (Expo Go) | `npm start` puis scanner le QR code |
+| Dans le navigateur | `npm run web` |
+| Fichier **APK Android** installable | `npx eas-cli@latest login` puis `npx eas-cli@latest build -p android --profile preview` |
+
+Le build APK se fait dans le cloud d'Expo (compte gratuit nécessaire) : à la fin, EAS affiche un lien et un QR code
+pour télécharger l'APK. Sur Android, autoriser l'installation d'applications de sources inconnues pour l'installer.
+
 ## Structure
 
 ```
