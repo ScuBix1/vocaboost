@@ -14,7 +14,7 @@ import { ProgressBar } from '@/components/ProgressBar';
 import { Vobi } from '@/components/Vobi';
 import { currentCard } from '@/domain/dailyWords';
 import { CATEGORY_LABELS } from '@/domain/types';
-import { useActionGuard } from '@/hooks/useActionGuard';
+import { useActionGuard, useArrivalGuard } from '@/hooks/useActionGuard';
 import { useClientReady } from '@/hooks/useClientReady';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { speakEnglish, stopSpeaking } from '@/services/speech';
@@ -42,6 +42,7 @@ function ReviewRun() {
   const reduceMotion = useReduceMotion();
   const { fontScale } = useWindowDimensions();
   const guard = useActionGuard();
+  const justArrived = useArrivalGuard();
   const { lock } = guard;
   const slide = useRef(new Animated.Value(1)).current;
   const handledIndex = useRef(-1);
@@ -75,10 +76,11 @@ function ReviewRun() {
   }, [finished]);
 
   const flip = useCallback(() => {
-    if (flipped || guard.isLocked()) return;
+    // V11-01 : le 2e tap d'un double tap sur « Réviser ces mots » ne doit pas retourner la carte 1.
+    if (flipped || justArrived() || guard.isLocked()) return;
     setFlipped(true);
     lock();
-  }, [flipped, guard, lock]);
+  }, [flipped, guard, lock, justArrived]);
 
   const choose = (retained: boolean) => {
     if (!flipped || !word || guard.isLocked() || handledIndex.current === index) return;

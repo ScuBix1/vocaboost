@@ -50,3 +50,7 @@ Points mineurs connus et acceptés : RT-02 (boutons grisés 300 ms au retourneme
 ✅ **Approuvée** (rôle Client) : DA v2 intégrée, recette QA « prête » (aucun bug critique ou majeur ouvert).
 Points mineurs connus et acceptés : RT2-01 (boutons d'évaluation sur 2 lignes sous ~340 pt), RT2-02 (tap ignoré juste après une garde d'arrivée).
 Toujours à faire avant publication : passage sur appareils iOS et Android réels.
+
+## Approbation — v1.1 « Mots du jour »
+✅ **Approuvée** (rôle Client) : recette QA « prête », aucun bug critique ou majeur ouvert.
+Point mineur connu et accepté : V11-04 (accessibilité des lignes de la liste avec un lecteur d'écran sur le web, à vérifier sur appareil réel).

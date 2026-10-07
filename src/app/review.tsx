@@ -18,6 +18,8 @@ import type { DailyWord } from '@/domain/dailyWords';
 import { CATEGORY_LABELS } from '@/domain/types';
 import { useActionGuard, useArrivalGuard } from '@/hooks/useActionGuard';
 import { useClientReady } from '@/hooks/useClientReady';
+import { getTodayWords } from '@/domain/dailyWords';
+import { WORDS } from '@/data/words';
 import { useTodayWords } from '@/hooks/useLearnerSelectors';
 import { useNow } from '@/hooks/useNow';
 import { speakEnglish, stopSpeaking } from '@/services/speech';
@@ -61,12 +63,19 @@ function ReviewList() {
 
   useEffect(() => stopSpeaking, []);
 
+  // V11-05 : quitter la liste vide l'état éphémère de la passe (rien n'est persisté).
+  useEffect(() => () => useReviewStore.getState().clear(), []);
+
   const start = () => {
     if (justArrived() || guard.isLocked() || n === 0) return;
+    // V11-02 : l'instantané est pris sur la date courante, pas sur celle de l'affichage (minuit passé).
+    const progress = useLearnerStore.getState().progress;
+    const fresh = getTodayWords(WORDS, progress, new Date());
+    if (fresh.length === 0) return; // minuit passé : plus de mot du jour, la liste se rafraîchit seule
     guard.lock();
     useReviewStore.getState().startDaily(
-      items.map((i) => i.word),
-      useLearnerStore.getState().progress,
+      fresh.map((i) => i.word),
+      progress,
     );
     router.push('/review-run');
   };

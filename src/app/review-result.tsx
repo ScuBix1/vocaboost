@@ -4,7 +4,7 @@
  */
 import { Redirect, router } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -17,6 +17,9 @@ import { useActionGuard, useArrivalGuard } from '@/hooks/useActionGuard';
 import { useReviewStore } from '@/store/useReviewStore';
 import { categoryColors, colors, MAX_FONT_MULTIPLIER, spacing, typography } from '@/theme/tokens';
 
+/** En dessous de cette hauteur (pt), les boutons ne sont plus fixés quand la liste est affichée. */
+const COMPACT_HEIGHT = 760;
+
 function goHome() {
   if (router.canDismiss()) router.dismissAll();
   router.navigate('/');
@@ -26,6 +29,7 @@ export default function ReviewResultScreen() {
   const current = useReviewStore((s) => s.pass);
   const justArrived = useArrivalGuard();
   const guard = useActionGuard();
+  const { height } = useWindowDimensions();
   // On garde la passe terminée affichée : « Refaire … » remplace le store avant que l'écran
   // ne soit démonté, sans le faire rediriger vers la liste.
   const finished = useRef<ReviewPass | null>(null);
@@ -53,10 +57,10 @@ export default function ReviewResultScreen() {
     router.replace('/review-run');
   };
 
-  return (
-    <Screen
-      contentStyle={styles.content}
-      footer={
+  // V11-03 : sur petit écran, avec la liste « À revoir encore », les boutons suivent la liste
+  // dans la zone défilante au lieu d'être fixés en bas (ils masqueraient la liste).
+  const compact = !allRetained && height < COMPACT_HEIGHT;
+  const actions = (
         <>
           {allRetained ? null : (
             <Button label="Refaire les mots difficiles" size="md" onPress={() => redo('hard')} testID="review-redo-hard" />
@@ -76,9 +80,11 @@ export default function ReviewResultScreen() {
             testID="review-home"
           />
         </>
-      }
-    >
-      <Vobi mood={allRetained ? 'correct' : 'hello'} size={120} animateIn />
+  );
+
+  return (
+    <Screen contentStyle={styles.content} footer={compact ? undefined : actions}>
+      <Vobi mood={allRetained ? 'correct' : 'hello'} size={compact ? 72 : 120} animateIn />
       <View style={styles.titles}>
         <Text style={styles.title} accessibilityRole="header" testID="review-result-title">
           {allRetained ? 'Bravo, tout est retenu' : 'Révision terminée !'}
@@ -126,12 +132,14 @@ export default function ReviewResultScreen() {
           })}
         </Card>
       )}
+      {compact ? <View style={styles.inlineActions}>{actions}</View> : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   content: { alignItems: 'center', gap: 10, paddingTop: spacing.md },
+  inlineActions: { alignSelf: 'stretch', gap: 10, marginTop: spacing.sm },
   titles: { alignItems: 'center', gap: 2 },
   title: { ...typography.h1, color: colors.ink, textAlign: 'center' },
   subtitle: { ...typography.body, color: colors.inkMuted, textAlign: 'center' },

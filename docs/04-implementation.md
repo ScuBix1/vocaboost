@@ -211,3 +211,17 @@ Source : `docs/02-spec-pm.md` §10 à §15, `docs/03-design.md` « v1.1 », `doc
 - À 360×740, la fin de passe avec 3 mots à revoir fait défiler la carte « À revoir encore » sous les boutons fixés (contenu défilant, comportement prévu au design pour N grand).
 - La barre de progression d'une passe n'a le minimum visible de 6 % qu'à partir de 50 cartes (à N petit elle part vide, comme en session).
 - Non vérifié sur appareil réel (iOS / Android, TTS) : seulement Jest (expo-speech simulé) et Chromium.
+
+## Corrections recette v1.1
+
+Suite à la « Recette v1.1 — Mots du jour » (docs/05-rapport-qa.md). Aucune migration, aucune dépendance, lecture seule de la révision préservée.
+
+| Bug | Correction | Fichier |
+|---|---|---|
+| V11-01 | `useArrivalGuard` dans `flip` : tout tap sur la carte ou « Retourner » est ignoré ~300 ms après l'arrivée sur la passe (double tap sur « Réviser ces mots » / « Refaire les mots difficiles »). Le `test.failing` de `qa-review.test.tsx` est devenu un test normal. | `src/app/review-run.tsx` |
+| V11-02 | `useNow` programme un réveil juste après le prochain minuit local : la liste se vide d'elle-même. En plus, « Réviser ces mots » recalcule `getTodayWords(…, new Date())` : l'instantané figé au démarrage (spec) est pris sur la date courante ; si plus aucun mot, rien ne démarre. | `src/hooks/useNow.ts`, `src/app/review.tsx` |
+| V11-03 | Fin de passe : sous 760 pt de hauteur, avec la liste « À revoir encore », les boutons suivent la liste dans la zone défilante (Vobi 72) au lieu d'être fixés ; au-dessus, comportement inchangé. La liste n'est plus masquée à 360×740 ni 320×568. L'écran liste n'a pas de carte « À revoir encore » : seule l'indication sur les lignes, sans changement. | `src/app/review-result.tsx` |
+| V11-05 | La liste appelle `useReviewStore.clear()` à son démontage (sortie vers l'Accueil, état vide) ; la passe reste en mémoire pendant les allers-retours liste/passe. | `src/app/review.tsx` |
+| V11-04 | **Non corrigé, documenté** : react-native-web ignore `importantForAccessibility` / `accessibilityElementsHidden` ; correction fiable seulement avec des essais VoiceOver/TalkBack (non disponibles), donc laissée en réserve. | `src/components/DailyWordRow.tsx` |
+
+Tests ajoutés (`qa-review.test.tsx`) : minuit (liste vide d'elle-même), « Réviser » après minuit sans passe de la veille, fin de passe à 320×568, vidage à la sortie. `docs/design/rendu-revision.png` : écran de fin à 360×740 régénéré.

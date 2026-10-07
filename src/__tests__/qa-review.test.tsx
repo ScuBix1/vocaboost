@@ -2,6 +2,7 @@
  * Tests QA — recette v1.1 « Mots du jour » (docs/05-rapport-qa.md, « Recette v1.1 — Mots du jour »).
  * Intégrité (lecture seule), cas limites de la définition et bug V11-01 (double tap « Réviser ces mots »).
  */
+import { Dimensions } from 'react-native';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 
 import { WORDS } from '@/data/words';
@@ -106,7 +107,7 @@ describe('QA v1.1 — domaine : lecture seule et définition', () => {
 
 describe('QA v1.1 — double tap « Réviser ces mots » (V11-01)', () => {
   // Le tap résiduel d'un double tap tombe sur « Retourner » de la 1re carte (même emplacement, bas d'écran).
-  test.failing('le 2e tap d’un double tap sur « Réviser ces mots » ne doit pas retourner la 1re carte', async () => {
+  it('le 2e tap d’un double tap sur « Réviser ces mots » ne doit pas retourner la 1re carte', async () => {
     const t = new Date();
     WORDS.slice(0, 4).forEach((w) => useLearnerStore.getState().evaluateCard(w.id, true, t));
     await renderRouter(routes, { initialUrl: '/review' });
@@ -114,5 +115,71 @@ describe('QA v1.1 — double tap « Réviser ces mots » (V11-01)', () => {
     await fireEvent.press(screen.getByTestId('review-start'));
     await fireEvent.press(screen.getByTestId('review-flip')); // 2e tap, dans les 300 ms
     expect(screen.queryByTestId('review-retained')).toBeNull();
+  });
+});
+
+describe('Corrections recette v1.1 (V11-02, V11-03, V11-05)', () => {
+  const realNow = Date.now();
+  afterEach(() => {
+    jest.setSystemTime(realNow);
+  });
+
+  it('V11-02 : une liste laissée ouverte à minuit se vide d’elle-même (état vide, pas de passe de la veille)', async () => {
+    jest.setSystemTime(new Date(2026, 9, 7, 23, 58, 0));
+    WORDS.slice(0, 3).forEach((w) => useLearnerStore.getState().evaluateCard(w.id, true, new Date()));
+    await renderRouter(routes, { initialUrl: '/review' });
+    await waitGuard();
+    expect(screen.getByTestId('review-count')).toBeTruthy();
+    jest.setSystemTime(new Date(2026, 9, 8, 0, 0, 5));
+    await act(() => jest.advanceTimersByTime(3 * 60 * 1000));
+    expect(screen.getByTestId('review-empty')).toBeTruthy();
+    expect(screen.queryByTestId('review-start')).toBeNull();
+  });
+
+  it('V11-02 : « Réviser ces mots » recalcule sur la date courante et ne lance pas les mots de la veille', async () => {
+    jest.setSystemTime(new Date(2026, 9, 7, 23, 58, 0));
+    WORDS.slice(0, 3).forEach((w) => useLearnerStore.getState().evaluateCard(w.id, true, new Date()));
+    await renderRouter(routes, { initialUrl: '/review' });
+    await waitGuard();
+    jest.setSystemTime(new Date(2026, 9, 8, 0, 0, 5)); // minuit passé, minuteur pas encore déclenché
+    await fireEvent.press(screen.getByTestId('review-start'));
+    expect(useReviewStore.getState().pass).toBeNull();
+    expect(screen.queryByTestId('review-run-pending')).toBeNull();
+    expect(screen.queryByTestId('review-counter')).toBeNull();
+  });
+
+  it('V11-03 : à 320×568, la liste « À revoir encore » et les trois boutons sont dans la zone défilante', async () => {
+    const t = new Date();
+    WORDS.slice(0, 3).forEach((w) => useLearnerStore.getState().evaluateCard(w.id, true, t));
+    Dimensions.set({ window: { width: 320, height: 568, scale: 2, fontScale: 1 } });
+    try {
+      await renderRouter(routes, { initialUrl: '/review' });
+      await waitGuard();
+      await fireEvent.press(screen.getByTestId('review-start'));
+      for (const retained of [true, false, false]) {
+        await waitGuard();
+        await fireEvent.press(screen.getByTestId('review-flip'));
+        await waitGuard();
+        await fireEvent.press(screen.getByTestId(retained ? 'review-retained' : 'review-hard'));
+      }
+      expect(await screen.findByTestId('review-hard-list')).toBeTruthy();
+      for (const id of ['review-redo-hard', 'review-redo-all', 'review-home']) expect(screen.getByTestId(id)).toBeTruthy();
+    } finally {
+      Dimensions.set({ window: { width: 390, height: 844, scale: 2, fontScale: 1 } });
+    }
+  });
+
+  it('V11-05 : quitter la liste vide l’état éphémère de la révision', async () => {
+    const t = new Date();
+    WORDS.slice(0, 2).forEach((w) => useLearnerStore.getState().evaluateCard(w.id, true, t));
+    await renderRouter(routes, { initialUrl: '/review' });
+    await waitGuard();
+    await fireEvent.press(screen.getByTestId('review-start'));
+    expect(useReviewStore.getState().pass).not.toBeNull();
+    await waitGuard();
+    await fireEvent.press(screen.getByTestId('review-quit')); // retour à la liste : la passe reste en mémoire
+    await waitGuard();
+    await fireEvent.press(screen.getByTestId('review-back')); // sortie de la liste : état vidé
+    expect(useReviewStore.getState().pass).toBeNull();
   });
 });
