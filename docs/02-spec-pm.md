@@ -59,10 +59,12 @@
 ### 4.1 Contenu (banque de mots)
 - **RG-01** — Exactement **200 mots** embarqués dans le code (fichier de données local), disponibles hors ligne dès la première ouverture.
 - **RG-02** — Chaque mot possède : `id` (chaîne stable et unique, ex. `kitchen`), `en` (mot anglais), `fr` (traduction française principale, une seule), `category`, `level` ∈ {A1, A2, B1, B2}, `example` (phrase en anglais contenant le mot, ≤ 120 caractères).
+  > *Note du 2026-10-07 (v1.2)* : chaque mot possède en plus `exampleFr` (traduction française de `example`, RG-155 → RG-157). Le texte d'origine ci-dessus n'est pas modifié.
 - **RG-03** — Unicité : aucun doublon de `id`, de `en`, ni de `fr` dans la banque (garantit des QCM non ambigus).
 - **RG-04** — **10 catégories × 20 mots** : Maison, Nourriture, Voyage, Travail, École, Corps & santé, Nature & animaux, Émotions & personnalité, Temps & calendrier, Verbes courants.
 - **RG-05** — Répartition par niveau : A1 = 50, A2 = 60, B1 = 50, B2 = 40 (chaque catégorie contient au moins 1 mot de chaque niveau).
 - **RG-06** — Les noms de catégories sont affichés en français ; mots et exemples en anglais ; aucune traduction de la phrase d'exemple n'est requise.
+  > *Note du 2026-10-07 (v1.2)* : cette phrase est **remplacée** à partir de la v1.2 : la traduction française de la phrase d'exemple est requise et affichée (RG-155 → RG-164). Les noms de catégories restent en français, mots et exemples en anglais.
 
 ### 4.2 Boîtes de Leitner
 - **RG-10** — Tout mot démarre en **boîte 0**, `seenCount = 0`.
@@ -73,6 +75,7 @@
 
 ### 4.3 Composition d'une session
 - **RG-20** — Taille cible : **10 cartes**. Un mot n'apparaît **qu'une fois** par session (pas de répétition intra-session).
+  > *Note du 2026-10-07 (v1.2)* : la taille cible passe à **15 cartes** (RG-140). « Un mot une seule fois par session » est inchangé.
 - **RG-21** — Pool = mots correspondant aux filtres actifs (§4.6). Il est séparé en *nouveaux* et *à réviser* (= vus).
 - **RG-22** — Proportion : **au plus 3 nouveaux** + **7 révisions**. Complément :
   - si moins de 7 révisions disponibles → compléter avec des nouveaux ;
@@ -80,6 +83,7 @@
   - si le pool total < 10 → la session contient tout le pool (taille < 10) ;
   - si le pool est vide → pas de session, message « Aucun mot ne correspond à tes filtres » + bouton « Réinitialiser les filtres ».
   - Première session (aucun mot vu) : 10 nouveaux.
+  > *Note du 2026-10-07 (v1.2)* : proportion portée à **au plus 5 nouveaux + 10 révisions**, seuil de pool complet à **15**, première session = **15 nouveaux** (RG-141 → RG-143). Les règles de complément gardent la même logique.
 - **RG-23** — Tirage des **nouveaux** : aléatoire uniforme parmi les nouveaux du pool.
 - **RG-24** — Tirage des **révisions** : aléatoire **pondéré sans remise**, poids selon la boîte :
 
@@ -93,7 +97,8 @@
 
 ### 4.4 Déroulé d'une carte
 - **RG-30** — Recto : mot anglais + badge niveau + catégorie + indicateur « Carte n / N ». (P2 : bouton haut-parleur.)
-- **RG-31** — Tap sur la carte ou bouton « Retourner » → verso : mot anglais, traduction FR, phrase d'exemple EN. (P2 : bouton haut-parleur pour le mot et pour la phrase.)
+- **RG-31** — Tap sur la carte ou bouton « Retourner » → verso : mot anglais, traduction FR, phrase d'exemple EN.
+  > *Note du 2026-10-07 (v1.2)* : le verso affiche aussi la traduction française de la phrase d'exemple, sous la phrase anglaise (RG-160). (P2 : bouton haut-parleur pour le mot et pour la phrase.)
 - **RG-32** — Les boutons « Je savais » / « Je ne savais pas » n'apparaissent et ne sont actifs **qu'après retournement**.
 - **RG-33** — Après évaluation → carte suivante. Pas de retour à la carte précédente, pas de modification d'une évaluation.
 - **RG-34** — Bouton « Quitter » disponible à tout moment : les cartes déjà évaluées restent comptées (RG-14) ; la carte en cours non évaluée n'a aucun effet.
@@ -105,6 +110,7 @@
 - **RG-42** — **% global** = `floor(maîtrisés / 200 × 100)`.
 - **RG-43** — **Par catégorie** : pour chacune des 10 catégories : vus/20, maîtrisés/20, `floor(maîtrisés/20 × 100)` %. Ces valeurs ignorent les filtres.
 - **RG-44** — **Objectif quotidien** : nombre de cartes évaluées par date locale. Valeur au choix **10, 20 ou 30** (défaut **10**), réglable dans Réglages. Affichage « x / objectif » ; atteint quand x ≥ objectif (x continue d'augmenter au-delà). Les réponses du test ne comptent **pas** dans l'objectif.
+  > *Note du 2026-10-07 (v1.2)* : défaut **15**, choix **10, 15, 20 ou 30** ; migration des données v1 (`dailyGoal: 10` devient 15 une seule fois) : RG-146, RG-147.
 - **RG-45** — **Jour actif** : date locale où au moins **1 carte a été évaluée** OU un test hebdomadaire a été terminé. (Atteindre l'objectif n'est pas requis pour le streak.)
 - **RG-46** — **Série actuelle (streak)** :
   - si aujourd'hui est actif → nombre de jours actifs consécutifs se terminant aujourd'hui ;
@@ -146,6 +152,7 @@
 
 ### 4.9 Persistance et réinitialisation
 - **RG-90** — Toutes les données sont stockées localement via AsyncStorage (Zustand + persist), sous une clé unique versionnée (ex. `vocaboost-store`, `version: 1`). Aucune donnée réseau.
+  > *Note du 2026-10-07 (v1.2)* : la version du store passe à **2** (RG-147). Aucune autre donnée persistée n'est ajoutée ; `exampleFr` vit dans la banque (code), pas dans le store.
 - **RG-91** — Données persistées : état par mot (`box`, `seenCount`, `firstSeenAt`, `lastSeenAt`), jours actifs, compteur de cartes du jour, meilleure série, historique des tests, filtres, objectif quotidien. La banque de mots n'est **pas** persistée (elle vient du code) ; l'état est indexé par `id` de mot.
 - **RG-92** — Après fermeture forcée et réouverture, toutes les données ci-dessus sont identiques (aucune évaluation déjà tapée perdue).
 - **RG-93** — Données illisibles/corrompues → l'app démarre sur un état vierge sans crash.
@@ -410,3 +417,207 @@ En tant qu'apprenant, je veux entendre les mots en révisant, afin de fixer la p
 
 ### Validation Client — v1.1
 ✅ Décisions D-01 à D-08 **approuvées** par le client (révision en lecture seule, pas de migration du store, pas de mini-quiz, filtres non appliqués à la révision).
+
+---
+
+# Évolution v1.2 — 15 cartes par jour et traduction des exemples
+
+> Chapitre ajouté le 2026-10-07. Les chapitres 1 à 15 (RG-01 → RG-134, US-01 → US-16) ne sont pas renumérotés ; seules des **notes datées** ont été ajoutées sous RG-02, RG-06, RG-20, RG-22, RG-31, RG-44 et RG-90. Demandes client : (1) « Le nombre de mots par jour : on passe de 10 à 15 mots par jour. » ; (2) « Donne-moi le sens français de la phrase d'utilisation du mot pour que je sache ce que la phrase veut dire. » Destinataires : Designer, Développeur, QA.
+
+## 16. Cadrage
+
+**Interprétation (1)** : « mots par jour » = cartes par session **et** objectif quotidien par défaut. Une session de 15 cartes = un objectif quotidien de 15 atteint en une session. Le reste (Leitner, test, mots du jour, série) est inchangé.
+
+**Interprétation (2)** : la phrase d'exemple anglaise reste ; on lui ajoute sa **traduction française** (champ `exampleFr`) affichée là où l'exemple l'est déjà, sauf dans le test (elle donnerait la réponse).
+
+**Hors scope v1.2** : voix française (TTS) ; traduction du mot dans le test ; réglage « masquer la traduction » ; édition des traductions par l'utilisateur ; nouvelles catégories ou mots ; objectif quotidien libre (saisie d'un nombre) ; message d'information sur le changement (cf. D-12).
+
+### 16.1 Constats dans le code (vérifiés)
+- `domain/session.ts` : `SESSION_SIZE = 10`, `MAX_NEW_PER_SESSION = 3` ; les révisions cibles se déduisent (`SESSION_SIZE − MAX_NEW`). L'algorithme de complément est déjà générique : il suffit de changer les constantes.
+- `domain/types.ts` : `DAILY_GOAL_OPTIONS = [10, 20, 30]`, `DEFAULT_DAILY_GOAL = 10`. `sanitizePersistedData` rejette toute valeur hors options (retombe sur le défaut) : **15 doit donc être ajouté aux options avant toute écriture**, sinon un 15 stocké serait remis à la valeur par défaut.
+- `useLearnerStore.ts` : `STORAGE_VERSION = 1` ; `migrate` appelle seulement `sanitizePersistedData` ; `merge` rappelle `sanitizePersistedData` **à chaque lecture**. Conséquence : la conversion 10 → 15 ne doit **jamais** être placée dans `sanitizePersistedData` (elle écraserait à chaque lancement le choix « 10 » d'un utilisateur), mais dans `migrate`, qui ne s'exécute qu'une fois (version stockée 1).
+- Textes qui contiennent le nombre en dur dans `src/` (hors tests) : `components/messages.ts` (« Prêt pour tes 10 premiers mots ? ») et `app/(tabs)/learn.tsx` (« 10 cartes tirées au hasard… »). Les autres écrans (Accueil « Encore X cartes », récap « x / N », « Carte n / N », anneau d'objectif, Réglages) dérivent les valeurs de l'état, de la session ou des constantes : aucun libellé « x / 10 » codé en dur. Les tests, eux, contiennent des 10 (voir §21).
+- `Word` n'a pas de champ de traduction d'exemple. `Flashcard.tsx` (verso : « Traduction » + « Exemple » avec 🔊) est réutilisé par la session **et** par la passe de révision ; `DailyWordRow.tsx` affiche l'exemple dans la liste. `speakEnglish` force `en-US`.
+- `__tests__/typographie.test.ts` analyse **toutes** les chaînes de `src/` hors tests, `data/words.ts` compris : une phrase française avec « ! ? : ; » précédé d'une espace ordinaire ferait échouer le test (espace insécable U+00A0 obligatoire).
+
+## 17. Règles métier — 15 cartes par jour (RG-140+)
+
+### 17.1 Session
+- **RG-140** — Taille cible d'une session : **15 cartes** (remplace RG-20). Un mot n'apparaît qu'une fois par session.
+- **RG-141** — Proportion : **au plus 5 nouveaux + 10 révisions** (remplace RG-22). Justification : le ratio historique est 30 % de nouveaux (3/10) ; 30 % de 15 = 4,5, non entier. 5 + 10 (33 %) garde le principe « les révisions pèsent le double des nouveaux » et répond à l'intention du client (plus de mots par jour) : rythme de découverte 3 → 5 mots/jour, banque de 200 mots explorée en ≈ 40 jours au lieu de ≈ 67. Alternative 4 + 11 (27 %) en D-09.
+- **RG-142** — Complément (n = nouveaux du pool, r = révisions du pool, k = n + r) :
+  - `newCount = min(n, 5)`, `reviewCount = min(r, 10)` ;
+  - r < 10 → les révisions manquantes sont remplacées par des nouveaux : `newCount = min(n, 5 + (10 − reviewCount))` ;
+  - n < 5 ou nouveaux épuisés → les nouveaux manquants sont remplacés par des révisions : `reviewCount = min(r, 15 − newCount)` ;
+  - k < 15 → la session contient **tout le pool** (taille k) ;
+  - k = 0 → pas de session, message « Aucun mot ne correspond à tes filtres » et bouton « Réinitialiser les filtres » (inchangé, RG-22).
+
+  | n (nouveaux) | r (révisions) | Résultat (nouveaux + révisions) |
+  |---|---|---|
+  | ≥ 5 | ≥ 10 | 5 + 10 |
+  | 200 | 0 (première session) | 15 + 0 |
+  | 20 | 8 | 7 + 8 |
+  | 10 | 5 | 10 + 5 |
+  | 2 | 30 | 2 + 13 |
+  | 0 | 40 | 0 + 15 |
+  | 4 | 6 | 4 + 6 (pool de 10 < 15, tout le pool) |
+  | 9 | 5 | 9 + 5 (pool de 14 < 15) |
+  | 0 | 0 | aucune session |
+- **RG-143** — **Première session** (aucun mot vu) : **15 nouveaux** (remplace « 10 nouveaux » de RG-22). Conséquence assumée : 15 mots inconnus d'un coup pour un débutant (D-10).
+- **RG-144** — RG-23, RG-24 (poids 16/8/4/2/1/0,5), RG-25 (ordre mélangé), RG-26 (fonction pure, RNG injectable) : **inchangées**.
+- **RG-145** — Aucun nombre de cartes n'est écrit en dur dans un texte d'interface : « 15 premiers mots », « 15 cartes tirées au hasard… », seuil « Ta session contiendra {k} cartes » (k < 15) dérivent de `SESSION_SIZE`.
+
+### 17.2 Objectif quotidien
+- **RG-146** — Défaut **15**. Choix proposés dans Réglages : **10, 15, 20, 30** (ordre croissant). On **ajoute** 15 et on **garde** 10, 20, 30 : aucune valeur déjà choisie par un utilisateur ne devient invalide. 10 et 20 restent utiles (rythme plus doux ou plus soutenu qu'une session) ; 30 = 2 sessions. Alternative 15/30/45 en D-11. L'objectif ne change pas la taille d'une session.
+- **RG-147** — **Migration du store, version 1 → 2** (`STORAGE_VERSION = 2`) :
+  1. Elle s'exécute **une seule fois**, sur les données stockées en version 1, dans `migrate(persisted, version)` (pas dans `sanitizePersistedData`, rappelé à chaque lecture).
+  2. Si `version === 1` et `dailyGoal === 10` → `dailyGoal = 15`. Raison : v1 ne permet pas de distinguer « défaut jamais touché » de « choix délibéré de 10 » ; l'immense majorité des installations étant au défaut, on suit l'intention du client (15 par jour). Un utilisateur qui voulait 10 le remet en 2 taps dans Réglages ; ce choix est ensuite **conservé** (version 2).
+  3. `dailyGoal` 20 ou 30 → conservé. `dailyGoal` absent ou invalide (donnée corrompue) → 15 (nouveau défaut, RG-93).
+  4. Toutes les autres données (progress, activeDays, cardsPerDay, bestStreak, testHistory, filters) passent par `sanitizePersistedData` comme aujourd'hui : **aucune perte**.
+  5. Version stockée 2 : aucune conversion (un « 10 » stocké en v2 est un choix et reste 10). Version stockée > 2 (retour arrière d'app) : aucune conversion ni plantage (comportement actuel conservé).
+  6. Installation neuve : pas de stockage → défaut 15, écriture en version 2.
+  7. La migration est idempotente : deux lancements successifs donnent le même résultat ; elle est écrite sur disque au plus tard au premier changement d'état.
+  8. Réinitialisation (RG-94) : objectif conservé (inchangé).
+- **RG-148** — **Jour de la mise à jour** : `cardsPerDay` du jour est conservé ; seul le dénominateur change (ex. 10/10 atteint le matin devient 10/15, « Encore 5 cartes… »). Effet assumé, sans correctif ; pas de rétroactivité sur les jours passés (aucun historique d'objectif n'est affiché).
+- **RG-149** — Progression de l'objectif (RG-44) inchangée dans sa mécanique : x = cartes évaluées par date locale, pas de plafond, test et révision exclus. Avec le défaut 15, une session complète atteint exactement l'objectif ; quitter après 10 cartes donne 10/15.
+
+### 17.3 Effets sur les autres fonctions (vérifiés)
+- **RG-150** — **Récap de session (RG-35)** : « x / N » où **N = nombre de cartes de la session** (15, ou k < 15 si le pool est réduit), jamais une constante. Sous-titre selon la part de « Je savais » (≥ 50 %) inchangé. « Carte n / N » : N = 15.
+- **RG-151** — **Accueil** : message Vobi 0 mot vu « Salut ! Prêt pour tes 15 premiers mots ? » ; « Encore {restant} cartes et l'objectif du jour est dans la poche » inchangé (restant = objectif − x, donc 15 un jour sans carte) ; « Objectif atteint ✅ » inchangé ; anneau « x / objectif » inchangé.
+- **RG-152** — **Test hebdomadaire** : RG-60 → RG-72 **inchangés** : minimum 10 mots vus, N = min(20, mots vus), seuil 70 %. Effets de bord : la première session (15 nouveaux) débloque directement le test avec N = 15 (avant : 10 mots, N = 10) ; « Étudie encore X mots » (X = 10 − vus) n'apparaît plus qu'avec un pool filtré < 10 ou une session abandonnée ; le plafond de 20 est atteint plus vite.
+- **RG-153** — **Mots du jour (v1.1)** : RG-100 → RG-134 **inchangés**. Une session évalue jusqu'à 15 mots ; la liste (virtualisée, jusqu'à 200) reste correcte ; texte « n mots étudiés aujourd'hui » inchangé.
+- **RG-154** — **Streak, filtres, Leitner, TTS, réinitialisation** : inchangés.
+
+## 18. Règles métier — traduction française de l'exemple (RG-155+)
+
+### 18.1 Contenu
+- **RG-155** — Chaque mot de la banque possède **`exampleFr`** (chaîne, obligatoire, 200/200) : traduction française de `example`. Le champ vit dans la banque embarquée (`data/words.ts`) ; **aucune migration** (rien n'est persisté, l'état reste indexé par `id`, les `id` ne changent pas).
+- **RG-156** — **Qualité éditoriale** : traduction **naturelle et fidèle** (sens, temps, personne, négation, nombres, noms propres), jamais mot à mot ni calquée sur la syntaxe anglaise ; registre neutre ; même ponctuation finale que l'exemple (. ! ?) ; l'équivalent du mot cible peut différer de `fr` si la langue l'exige (accord, expression idiomatique), mais le sens du mot dans la phrase reste identifiable ; pas de guillemets englobants (ajoutés à l'affichage, comme pour `example`), pas de crochets ni de glose, apostrophe typographique ’ comme dans `example`, espace insécable avant « ! ? : ; » (contrainte de `typographie.test.ts`). Exemple : « Be careful, the stairs are very steep. » → « Fais attention, l’escalier est très raide. ».
+- **RG-157** — **Validation automatisée** (test d'intégrité de la banque, étendant `words.test.ts`), pour chacun des 200 mots :
+  1. `exampleFr` est une chaîne, `trim()` identique, non vide ;
+  2. longueur ≤ 120 caractères (même plafond que `example`, RG-02) ;
+  3. différent de `example` (comparaison insensible à la casse, aux espaces et à la ponctuation) ;
+  4. pas de retour à la ligne, pas de double espace, pas de guillemet englobant ;
+  5. même caractère final que `example` parmi « . ! ? » ;
+  6. rapport de longueur `exampleFr / example` compris entre 0,5 et 2,5 (détecte troncature et copier-coller) ;
+  7. pas de phrase restée en anglais : moins de 2 mots-outils anglais parmi {the, is, are, was, were, and, to, of, my, your, his, her, with, you, we} ;
+  8. ne contient pas le mot anglais `en` comme mot entier, sauf liste blanche explicite et commentée (emprunts usuels du français) ;
+  9. aucun doublon exact d'`exampleFr` dans la banque.
+- **RG-158** — **Contrôle de qualité humain** : relecture **intégrale** des 200 traductions par un relecteur francophone **différent du rédacteur** (rédaction par le Développeur, relecture par le QA). Grille par phrase : fidélité, naturel, orthographe/grammaire, cohérence avec `fr`, niveau de langue. Critères de passage : 0 contresens, 0 faute d'orthographe ou de grammaire, 0 traduction mot à mot ; les retouches de style sont corrigées avant livraison. Le rapport QA liste le nombre de phrases relues, corrigées et la liste des corrections.
+
+### 18.2 Affichage
+- **RG-159** — **Où** :
+  | Écran | Traduction de l'exemple |
+  |---|---|
+  | Session : verso de la carte | **Oui** (P0) |
+  | Passe de révision « Mots du jour » : verso (même composant `Flashcard`) | **Oui** (P0, hérité du composant) |
+  | Liste « Mots du jour » : chaque ligne | **Oui** (P1) |
+  | Recto de carte (session ou révision) | **Non** : elle contient la réponse |
+  | Test hebdomadaire (questions, résultat, mots ratés) | **Non** : la phrase donnerait la réponse ; RG-66 inchangé |
+  | Écran Apprendre, Accueil, Progression, Réglages, fin de passe, récap de session | Sans objet : aucun de ces écrans n'affiche d'exemple |
+- **RG-160** — **Présentation (recommandation pédagogique)** : la traduction est **toujours visible dès que le verso est affiché**, sans tap supplémentaire, **directement sous la phrase anglaise**, dans le même bloc « Exemple ». Elle est visuellement secondaire (non italique, taille ≤ celle de l'exemple, couleur atténuée mais contraste ≥ 4,5:1) et **non interactive**. Pourquoi : (a) le verso est déjà l'étape de révélation : l'apprenant a tenté de se rappeler le mot avant de retourner la carte ; la traduction de la phrase est une aide de **compréhension**, pas un item d'auto-test (c'est précisément le besoin exprimé : « pour que je sache ce que la phrase veut dire ») ; (b) un tap de plus sur chacune des 15 cartes du jour casse le rythme d'une session courte ; (c) un contenu masqué est une difficulté d'accessibilité et d'état supplémentaire (réinitialisation à chaque carte) ; (d) l'ordre EN puis FR et la taille réduite incitent à lire d'abord l'anglais. Alternative « à révéler au tap » en D-13. Dans la liste « Mots du jour » : même logique (RG-107, consultation) : exemple EN puis, dessous, sa traduction.
+- **RG-161** — **Libellé** : la traduction est reconnaissable comme telle (repère visuel court, au choix du Designer : drapeau 🇫🇷 ou libellé « En français », cohérent avec les `overline` existants) ; le libellé existant « Exemple » reste.
+
+### 18.3 Accessibilité, TTS, cas limites
+- **RG-162** — **TTS** : les boutons 🔊 existants lisent **uniquement** le mot et `example` en `en-US` (RG-80 → RG-82 inchangés). La traduction **n'a pas de bouton 🔊** et n'est **jamais** passée à `speakEnglish` (une voix anglaise lirait le français de façon incompréhensible).
+- **RG-163** — **Lecteurs d'écran** : le texte français est balisé en langue `fr-FR`, annoncé après la phrase anglaise, avec le préfixe « Traduction de l'exemple : » ; l'annonce au retournement devient « Traduction : {fr}. Exemple : {example}. Traduction de l'exemple : {exampleFr}. » ; le libellé d'une ligne « Mots du jour » est étendu de la même manière. Avant retournement, le texte français n'est pas exposé (comme `word.fr` aujourd'hui). Contraste ≥ 4,5:1 ; taille de police système respectée sans troncature (pas de limite de lignes).
+- **RG-164** — **Cas limites** :
+  - Phrase longue (jusqu'à 120 caractères, 3 à 4 lignes à 320 pt de large) : le verso reste entièrement lisible et les boutons « Je savais / Je ne savais pas » (ou « Retenu / À revoir encore ») restent atteignables à 320×568 et avec police agrandie (défilement interne ou hauteur adaptative, au choix du Designer) ;
+  - `exampleFr` manquant ou vide **à l'exécution** (impossible si le test d'intégrité est vert) : le bloc de traduction n'est pas rendu, aucun espace vide, aucun placeholder, aucun plantage ;
+  - Hors ligne : la traduction est embarquée, aucun appel réseau (cohérent AC-10.5) ;
+  - « Réduire les animations » : aucun comportement propre à la traduction ;
+  - Les deux écrans (session, passe de révision) affichent exactement le même verso, car ils partagent le composant.
+
+## 19. User stories et critères d'acceptation
+
+### US-17 — Sessions de 15 cartes (P0)
+En tant qu'apprenant, je veux des sessions de 15 cartes, afin que j'apprenne plus de mots chaque jour.
+- **AC-17.1** Pool ≥ 15 : la session contient 15 cartes distinctes (remplace AC-01.2) ; indicateur « Carte 1 / 15 ».
+- **AC-17.2** Avec ≥ 5 nouveaux et ≥ 10 vus : exactement 5 nouveaux + 10 révisions (remplace AC-02.2).
+- **AC-17.3** Compléments (tableau RG-142), un test par ligne : (20, 8) → 7 + 8 ; (10, 5) → 10 + 5 ; (2, 30) → 2 + 13 ; (0, 40) → 0 + 15 (remplace AC-02.3).
+- **AC-17.4** Première session (aucun mot vu) : 15 nouveaux (remplace AC-02.1).
+- **AC-17.5** Pool k < 15 (ex. 10 puis 14) : la session contient k cartes ; k = 0 : message et bouton RG-22 inchangés (remplace AC-01.3).
+- **AC-17.6** (pure, RNG injecté) Sur de nombreuses graines : taille, absence de doublon, nombres de nouveaux et de révisions conformes à RG-142 ; poids RG-24 inchangés (AC-02.4 identique) ; ordres différents selon la graine (AC-02.5 identique).
+- **AC-17.7** Textes : Accueil sans mot vu « Salut ! Prêt pour tes 15 premiers mots ? » ; Apprendre « 15 cartes tirées au hasard… » ; « Ta session contiendra {k} cartes » seulement si k < 15 ; aucun « 10 » résiduel dans les textes liés à la session.
+- **AC-17.8** Récap après une session de 15 : « x / 15 » ; après une session de pool réduit k = 12 : « x / 12 ».
+
+### US-18 — Objectif quotidien à 15 (P0)
+En tant qu'apprenant, je veux un objectif par défaut de 15 cartes, afin qu'une session suffise à l'atteindre.
+- **AC-18.1** Installation neuve : objectif 15 ; Réglages propose 10, 15, 20, 30 avec 15 sélectionné ; choisir 10 est possible et conservé après redémarrage.
+- **AC-18.2** Une session complète de 15 cartes sur un jour vierge : « 15 / 15 », « Objectif du jour atteint » ; quitter après 10 cartes : « 10 / 15 », message « Encore 5 cartes… ».
+- **AC-18.3** Dépassement sans plafond (ex. 20 / 15) ; test et révision n'incrémentent pas (AC-05.6 inchangé hors valeurs).
+- **AC-18.4** (migration) Store en version 1 avec `dailyGoal: 10` → après lancement : 15 et version stockée 2.
+- **AC-18.5** Version 1 avec `dailyGoal` 20 → 20 ; 30 → 30 ; absent ou invalide (ex. 25, « abc ») → 15.
+- **AC-18.6** Version 1 : tous les autres champs (mots vus, boîtes, jours actifs, cartes du jour, meilleure série, historique, filtres) identiques avant/après migration.
+- **AC-18.7** Après migration, choisir 10 dans Réglages puis relancer l'app deux fois : l'objectif reste 10 (la migration ne se rejoue pas). Idem pour un store écrit en version 2 avec `dailyGoal: 10`.
+- **AC-18.8** Store en version > 2 ou JSON corrompu : pas de plantage ; corrompu → état vierge avec objectif 15 (RG-93).
+- **AC-18.9** Réinitialiser la progression conserve l'objectif choisi (RG-94), y compris 15.
+- **AC-18.10** Un compteur du jour de 10 avec objectif migré : « 10 / 15 » (RG-148).
+
+### US-19 — Cohérence des autres fonctions (P0)
+En tant qu'apprenant, je veux que le test et les mots du jour restent cohérents, afin qu'aucune fonction existante ne soit dégradée.
+- **AC-19.1** Test : 9 vus → verrouillé (« Étudie encore 1 mot ») ; 10 vus → disponible, 10 questions ; 15 vus → 15 questions ; 50 vus → 20 questions (AC-07.1 / 07.2 inchangés).
+- **AC-19.2** Après une première session de 15 nouveaux, le test est disponible avec 15 questions, toutes sur des mots étudiés cette semaine.
+- **AC-19.3** Mots du jour : après deux sessions de 15 cartes distinctes le même jour, la liste contient les mots évalués sans doublon ; AC-11.x et AC-14.x restent verts sans modification de leurs attentes.
+
+### US-20 — Comprendre la phrase d'exemple (P0)
+En tant qu'apprenant francophone, je veux voir le sens français de la phrase d'exemple, afin que je comprenne comment le mot s'emploie.
+- **AC-20.1** Verso d'une carte de session : sous la phrase anglaise, la traduction française est visible sans action supplémentaire ; au recto elle est absente (et non exposée aux lecteurs d'écran).
+- **AC-20.2** Même verso dans la passe de révision « Mots du jour ».
+- **AC-20.3** Le bouton 🔊 de la phrase lit toujours la phrase anglaise (`en-US`, 0,9) ; il n'existe aucun bouton pour la traduction ; `speakEnglish` n'est jamais appelé avec `exampleFr` (test avec espion).
+- **AC-20.4** À 320×568 et police agrandie, avec la traduction la plus longue de la banque : verso lisible, boutons d'évaluation atteignables, aucune troncature.
+- **AC-20.5** Le test hebdomadaire n'affiche jamais `exampleFr` (questions, feedback, résultat, mots ratés).
+- **AC-20.6** Mode avion : identique ; aucune requête réseau.
+- **AC-20.7** `exampleFr` absent ou vide injecté dans un mot de test : le verso s'affiche sans bloc de traduction ni plantage.
+
+### US-21 — Traduction dans la liste « Mots du jour » (P1)
+- **AC-21.1** Chaque ligne affiche : exemple anglais puis, dessous, sa traduction ; le comportement de RG-105 → RG-107 (ordre, badge, virtualisation à 200 mots) est inchangé.
+- **AC-21.2** Le bouton 🔊 de la ligne lit l'exemple anglais seulement.
+
+### US-22 — Accessibilité de la traduction (P1)
+- **AC-22.1** Le texte français est balisé `fr-FR` ; l'annonce au retournement contient « Traduction de l'exemple : … » (test sur `announceForAccessibility`).
+- **AC-22.2** Le libellé d'accessibilité d'une ligne « Mots du jour » contient la traduction ; aucun doublon de lecture (pas de texte lu deux fois).
+- **AC-22.3** Contraste du texte de traduction ≥ 4,5:1 (valeur du jeton de couleur vérifiée par le Designer).
+
+### US-23 — Qualité des 200 traductions (P0)
+En tant que client, je veux des traductions justes et naturelles, afin de ne pas apprendre un contresens.
+- **AC-23.1** Le test d'intégrité (RG-157, 9 contrôles) est vert sur 200/200 mots ; la suppression ou la vidange d'un `exampleFr` le fait échouer (test négatif).
+- **AC-23.2** `typographie.test.ts` reste vert avec les nouvelles chaînes.
+- **AC-23.3** Relecture humaine RG-158 : 200/200 relues, 0 contresens, 0 faute ; rapport QA joint.
+
+## 20. Priorités
+- **P0** : RG-140 → RG-154, RG-155 → RG-158, RG-159 (session et passe), RG-160, RG-162, RG-164 ; US-17, US-18, US-19, US-20, US-23.
+- **P1** : RG-159 (liste « Mots du jour »), RG-161, RG-163 ; US-21, US-22.
+- **P2** : message d'information unique sur le changement d'objectif (D-12) ; réglage « masquer la traduction » (D-13).
+
+Une version est livrable si tout P0 est « fait ».
+
+## 21. Définition de « fait » (QA) pour v1.2
+1. Tous les AC de la story passent sur Android et iOS (ou Expo Go), en mode avion.
+2. **Tests des fonctions pures** (RNG injecté, sans hasard non maîtrisé) :
+   - `composeSession` : constantes `SESSION_SIZE = 15`, `MAX_NEW_PER_SESSION = 5` ; chaque ligne du tableau RG-142 ; invariants (taille, unicité, comptes) sur au moins 200 graines ; pool 0, 1, 14, 15, 16 ; première session ; poids RG-24 et mélange inchangés.
+   - Migration : fonction pure testable (ex. `migrateLearnerData(persisted, fromVersion)`) couvrant AC-18.4 → AC-18.8 (version 1 avec 10, 20, 30, absent, invalide, 25 ; version 2 avec 10 ; version 3 ; données corrompues ; idempotence) ; test d'intégration du store avec AsyncStorage simulé (relances successives) ; `STORAGE_VERSION === 2`, `DEFAULT_DAILY_GOAL === 15`, `DAILY_GOAL_OPTIONS` = [10, 15, 20, 30] ; `sanitizePersistedData` accepte 15, rejette 25.
+   - Récap : N dérivé de la session (15 et k < 15). Messages : `homeMessage` avec 0 mot vu.
+   - Test hebdo : `questionCountFor(15) = 15`, seuils 9/10 inchangés.
+3. **Intégrité de la banque** (`words.test.ts` étendu) : 200 mots avec `exampleFr` ; les 9 contrôles RG-157 ; test négatif ; `typographie.test.ts` vert.
+4. **Contrôle de qualité des 200 traductions** : relecture humaine RG-158 (rapport QA avec décompte et corrections) ; recoupement automatique avec les contrôles ci-dessus.
+5. **Non-régression** : toutes les suites existantes vertes. Tests existants dont les attentes **doivent changer parce que la règle change** (liste à justifier dans le rapport, aucun test supprimé ni affaibli) : tirage de session (10/3/7 → 15/5/10), objectif par défaut 10 → 15, version du store 1 → 2, texte « 10 premiers mots », compteurs de session 10 → 15. Les tests v1.1 (US-11 → US-16) restent inchangés.
+6. Espion TTS : `exampleFr` jamais lu ; aucun appel réseau ; 0 écriture AsyncStorage due à la traduction.
+7. `tsc --noEmit` et lint sans erreur ; aucune nouvelle dépendance.
+8. Parcours sans crash : installation neuve → session de 15 → récap → mots du jour → passe de révision (verso avec traduction) → test → réglages (4 options d'objectif) ; mise à jour depuis un store v1 (objectif 10) → 15.
+9. Le Designer valide : verso de carte, ligne « Mots du jour », Réglages à 4 options (largeur 320 pt), et met à jour `docs/03-design.md` (lignes sur « 10 premiers mots », « 10 cartes », « 15 / 10 » exemple de dépassement).
+
+## 22. Décisions à valider par le client
+- **D-09** Répartition d'une session de 15 : **5 nouveaux + 10 révisions** (33 % de nouveaux, rythme de découverte 3 → 5 mots/jour). Alternative : 4 + 11 (ratio le plus proche de l'ancien, 27 %, charge de nouveauté plus douce).
+- **D-10** Première session : **15 nouveaux mots** d'un coup (conséquence directe de RG-142). Alternative : limiter à 5 ou 10 nouveaux la toute première session (rejetée par défaut : session trop courte, règle spéciale en plus).
+- **D-11** Choix d'objectif : **10 / 15 / 20 / 30**, défaut 15. Alternative : 15 / 30 / 45 (multiples de session) ; elle invalide les choix 10 et 20 existants.
+- **D-12** Migration : tous les `dailyGoal: 10` existants passent à **15** une fois (version 2), car le défaut et le choix délibéré sont indiscernables ; l'utilisateur peut revenir à 10. Alternative : tout conserver (les utilisateurs au défaut resteraient à 10 alors que la session passe à 15). Option P2 : message d'information unique au premier lancement.
+- **D-13** Traduction de l'exemple **toujours visible** sous la phrase anglaise (verso et liste « Mots du jour »). Alternative : à révéler au tap (compréhension active, mais un tap de plus par carte et par ligne) ou réglage « masquer la traduction ».
+- **D-14** Traduction **absente du test** hebdomadaire et du recto de carte (elle contient la réponse).
+- **D-15** Pas de voix française : les 🔊 lisent uniquement l'anglais.
+- **D-16** Test hebdomadaire inchangé (minimum 10 mots vus, N = min(20, vus)) ; conséquence : il est débloqué dès la première session.
+- **D-17** Le jour de la mise à jour, un objectif de 10/10 déjà atteint peut redevenir 10/15 (pas de correction rétroactive).
+- **D-18** Relecture des 200 traductions par un relecteur francophone distinct du rédacteur ; si le client souhaite valider lui-même un échantillon, le prévoir avant livraison.
+
+### Validation Client — v1.2
+✅ Décisions D-09 à D-18 **approuvées** par le client (session de 15 cartes = 5 nouveaux + 10 révisions, objectif par défaut 15 avec migration du store en v2, traduction française toujours visible sous la phrase d'exemple).
