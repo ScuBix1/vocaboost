@@ -277,3 +277,136 @@ Une user story est **faite** quand :
 
 ## 9. Décisions à valider par le client
 Ces points ont été tranchés par le PM faute de précision dans le brief : session de 10 cartes (3 nouveaux / 7 révisions) ; maîtrisé = boîte ≥ 4 ; « Je ne savais pas » renvoie en boîte 0 ; streak = ≥ 1 carte ou 1 test dans la journée ; objectif 10/20/30 ; test = 20 questions, minimum 10 mots vus, seuil 70 %, 1 par semaine ISO sans rattrapage ; test abandonné non compté ; le test modifie les boîtes ; réinitialisation conserve réglages et filtres.
+
+---
+
+# Évolution v1.1 — Revoir le vocabulaire du jour
+
+> Chapitre ajouté le 2026-10-07. Les chapitres 1 à 9 (RG-01 → RG-94, US-01 → US-10, AC-01.x → AC-10.x) restent inchangés et ne sont pas renumérotés. Demande client : « pouvoir revoir le vocabulaire du jour afin de mieux l'assimiler ». Destinataires : Designer, Développeur, QA.
+
+## 10. Cadrage
+
+**Problème** : après une session, l'utilisateur ne peut pas relire ce qu'il vient d'étudier ; les cartes ne sont plus accessibles et la répétition espacée ne les représentera pas avant plusieurs jours. Or la révision immédiate (même jour) améliore l'ancrage.
+
+**Solution** : un écran « Mots du jour » (liste consultable) et une **passe de révision active** en cartes, sans aucun effet sur la progression (Leitner, objectif, série). La répétition espacée reste la seule source de vérité de la progression.
+
+**Hors scope v1.1** : mini-quiz QCM (recouvre le test hebdo, cf. D-07), saisie clavier, persistance d'une passe en cours, historique des révisions, rappels, révision d'un jour passé.
+
+### 10.1 Ce que l'état persisté permet déjà (vérifié dans le code)
+- `WordProgress.lastSeenAt` (ISO) est écrit par chaque évaluation de carte (`recordEvaluation`, RG-13) et **jamais** par le test (RG-69, `applyTestAnswers`). Il suffit donc à définir « évalué aujourd'hui en session ».
+- Le résultat de la dernière évaluation n'est pas stocké, mais `box === 0` avec `seenCount ≥ 1` signifie « raté à la dernière évaluation (session ou test) » (RG-12 ramène à 0 ; « Je savais » donne `box ≥ 1`). L'indicateur « su / à revoir » se **dérive** de `box`.
+- `cardsPerDay` ne contient pas les ids : il ne sert pas à définir la liste.
+- **Aucune migration** : `PersistedData`, `sanitizePersistedData` et `STORAGE_VERSION = 1` sont inchangés. Aucune nouvelle clé persistée, aucune dépendance npm.
+
+## 11. Règles métier (RG-100+)
+
+### 11.1 Définition
+- **RG-100** — **Mot du jour** : mot de la banque dont `progress[id].seenCount ≥ 1` ET dont `lastSeenAt` est une date valide dont la date locale (`toLocalDateKey`) égale la date locale de « maintenant ». Les mots dont seul le test a modifié la boîte aujourd'hui n'en font pas partie (le test ne touche pas `lastSeenAt`).
+- **RG-101** — Un mot évalué plusieurs fois aujourd'hui (sessions différentes) apparaît **une seule fois**. Un mot évalué hier et aujourd'hui y figure (sa `lastSeenAt` est celle d'aujourd'hui) ; un mot évalué hier seulement n'y figure pas.
+- **RG-102** — Changement de jour : la liste est recalculée à partir de l'heure courante à chaque affichage (date injectable) ; à minuit elle se vide (les mots de la veille disparaissent). Une passe de révision déjà **démarrée** travaille sur un instantané des ids pris à son démarrage et se termine normalement ; l'écran de fin et la liste, eux, sont recalculés.
+- **RG-103** — Réinitialisation (RG-94) : `progress` vidé, donc liste vide. Un mot dont l'id n'existe plus dans la banque est ignoré sans erreur.
+- **RG-104** — Les filtres de session (RG-50 → RG-52) **ne s'appliquent pas** à la liste ni à la passe de révision : tout mot évalué aujourd'hui y figure.
+
+### 11.2 Liste « Mots du jour »
+- **RG-105** — Chaque ligne affiche : mot EN, traduction FR, phrase d'exemple EN, catégorie (libellé FR), niveau, et un badge d'état : **« À revoir »** si `box = 0`, **« Su »** sinon (dérivé, RG-10/12). En-tête : « n mot(s) étudié(s) aujourd'hui ».
+- **RG-106** — Ordre : mots « À revoir » d'abord, puis boîte croissante, puis `lastSeenAt` décroissant, puis `en` alphabétique (ordre total déterministe, sans aléatoire).
+- **RG-107** — La traduction et l'exemple sont visibles dans la liste (consultation, pas auto-test). Liste virtualisée : jusqu'à 200 mots sans ralentissement perceptible.
+
+### 11.3 Passe de révision active (cartes)
+- **RG-110** — Bouton « Réviser ces mots » : lance une passe avec **tous** les mots du jour (instantané RG-102). Désactivé/absent si la liste est vide.
+- **RG-111** — Ordre de la passe : groupes par boîte croissante (boîte 0 en premier), mélange aléatoire **à l'intérieur de chaque groupe** ; générateur aléatoire injectable (même principe que RG-26).
+- **RG-112** — Carte : réutilise recto/verso de RG-30/31 (recto : mot EN, niveau, catégorie, « n / N » ; verso : traduction FR + exemple). Après retournement uniquement (RG-32) deux boutons : **« Retenu »** et **« À revoir encore »** (libellés volontairement différents de « Je savais / Je ne savais pas » pour éviter la confusion avec l'évaluation Leitner). Pas de retour arrière sur une carte (RG-33). « Quitter » à tout moment, sans confirmation, sans effet de bord.
+- **RG-113** — Écran de fin de passe : « x / N retenus », liste des mots « À revoir encore » (EN — FR), boutons « Refaire les mots difficiles » (visible seulement s'il y en a ≥ 1), « Refaire tous les mots », « Accueil ». Aucun confetti ni mention de série/objectif.
+- **RG-114** — **Passe sur les mots difficiles** : mêmes règles que RG-110/111/112 sur le sous-ensemble marqué « À revoir encore » de la passe précédente (marquage éphémère, en mémoire). Elle peut s'enchaîner jusqu'à épuisement (aucun mot difficile → message « Bravo, tout est retenu » et pas de bouton de refaite).
+- **RG-115** — Un seul mot (N = 1) : passe d'une carte, indicateur « 1 / 1 », fin de passe normale. Beaucoup de mots (jusqu'à 200) : pas de plafond, « Quitter » toujours disponible.
+- **RG-116** — TTS : mêmes boutons et comportement que RG-80/81/82 (recto : mot ; verso : mot et exemple), également disponibles sur chaque ligne de la liste (mot et exemple).
+
+### 11.4 Impact sur les règles existantes (recommandation : zéro effet sur la progression)
+- **RG-120** — Réviser (liste ou passe) **ne modifie jamais** : `box` (RG-11/12), `seenCount`, `firstSeenAt`, `lastSeenAt` (RG-13), `cardsPerDay` / objectif quotidien (RG-44), `activeDays` / série / meilleure série (RG-45 → RG-47), `testHistory`, statistiques (RG-40 → RG-43), sélection du test hebdo « mots étudiés cette semaine » (RG-63). Aucune écriture dans le store persisté ; le marquage « À revoir encore » vit uniquement en mémoire (comme `useResultsStore`, RG-34/RG-67 : rien n'est repris après fermeture).
+- **RG-121** — Justification : (a) une réponse donnée quelques minutes après la lecture de la solution ne prouve pas une rétention à long terme ; créditer +1 boîte ferait atteindre « maîtrisé » (boîte 4) en 4 passes le même jour, faussant % global, tirage (RG-24) et test ; (b) la liste du jour reste stable car `lastSeenAt` n'est pas modifié ; (c) pas de double comptage dans l'objectif (RG-44) ni dans le jour actif.
+- **Effets assumés** : réviser ne fait pas progresser l'objectif ni la série (l'utilisateur doit toujours faire une vraie session pour cela) ; un « À revoir encore » ne rétrograde pas le mot en boîte 0 (le tirage Leitner ne le sait pas), seule la fin de passe l'en informe l'utilisateur.
+- **Précisions (notes datées 2026-10-07, sans réécriture)** : *RG-52* — « uniquement aux sessions » inclut explicitement que les filtres ne s'appliquent pas à la révision du jour (RG-104). *RG-44 / RG-45* — une passe de révision n'est pas une « carte évaluée » au sens du glossaire §3. *RG-91* — aucune donnée nouvelle n'est persistée.
+- **RG-122** — Persistance : version du store inchangée (1). Aucune migration. Un état persisté v1.0 existant fonctionne sans transformation.
+
+### 11.5 Points d'entrée
+- **RG-130** — **Accueil** : carte « Mots du jour : n » avec bouton « Revoir » ; affichée seulement si n ≥ 1 (pas de bruit pour un nouvel utilisateur). Elle ne remplace pas « Commencer une session » (AC-01.1 reste valide : 1 tap).
+- **RG-131** — **Onglet Apprendre** : entrée permanente « Mots du jour (n) » ; à n = 0 elle mène à l'état vide (RG-132).
+- **RG-132** — **Récap de session** (RG-35) : bouton tertiaire « Revoir les mots du jour » (tous les mots du jour, pas seulement ceux de la session) ; ne remplace pas « Nouvelle session » / « Accueil ».
+- **RG-133** — **État vide** (n = 0, y compris après réinitialisation ou à minuit) : « Aucun mot étudié aujourd'hui », texte « Fais une session pour retrouver ici les mots du jour. » et bouton « Commencer une session ». Aucune passe lançable.
+- **RG-134** — Hors ligne, sans compte, interface française, aucune requête réseau (cohérent AC-10.5).
+
+## 12. User stories et critères d'acceptation
+
+### US-11 — Voir la liste des mots du jour (P0)
+En tant qu'apprenant, je veux retrouver les mots que j'ai étudiés aujourd'hui, afin de les relire.
+- **AC-11.1** Avec `lastSeenAt` aujourd'hui pour 3 mots (dont un évalué 2 fois) et hier pour 2 autres : la liste contient exactement 3 mots, sans doublon.
+- **AC-11.2** Un mot dont seule la boîte a changé via le test aujourd'hui (`lastSeenAt` d'hier) n'apparaît pas.
+- **AC-11.3** (pure, date injectable) `lastSeenAt = 2026-10-07T23:59:00` local → mot du jour pour `now = 2026-10-07T23:59:59`, absent pour `now = 2026-10-08T00:00:00`. Idem au changement d'heure (jour de 23 h/25 h).
+- **AC-11.4** Chaque ligne affiche EN, FR, exemple, catégorie, niveau, badge ; box 0 → « À revoir », box 1 à 5 → « Su ».
+- **AC-11.5** Ordre conforme à RG-106 (test unitaire avec jeu mélangé, résultat identique à chaque appel).
+- **AC-11.6** Filtres actifs restrictifs (ex. Voyage + A1) : la liste contient quand même tous les mots du jour (RG-104).
+- **AC-11.7** `lastSeenAt` invalide/null avec `seenCount ≥ 1`, id inconnu de la banque : ignorés, pas de crash.
+- **AC-11.8** Après réinitialisation : liste vide.
+
+### US-12 — Réviser activement en cartes (P0)
+En tant qu'apprenant, je veux me tester en cartes sur les mots du jour, afin de mieux les mémoriser.
+- **AC-12.1** « Réviser ces mots » affiche la première carte (recto) sans écran intermédiaire ; la traduction n'est pas visible.
+- **AC-12.2** « Retenu » / « À revoir encore » absents/inactifs avant retournement.
+- **AC-12.3** (pure, RNG injecté) Avec mots en boîtes {0, 0, 3, 5} : les deux boîte 0 passent avant le 3 puis le 5, quelle que soit la graine ; l'ordre intra-groupe varie selon la graine.
+- **AC-12.4** Chaque mot apparaît exactement une fois par passe ; indicateur « n / N » correct.
+- **AC-12.5** Fin : « x / N retenus » exact et liste des mots « À revoir encore ».
+- **AC-12.6** N = 1 : une carte, fin normale. N = 200 : passe complète sans erreur ni lenteur notable.
+- **AC-12.7** Quitter en cours : retour sans confirmation, aucune donnée persistée modifiée.
+- **AC-12.8** Passe lancée à 23:58, terminée à 00:02 : la passe va au bout sur ses mots ; au retour, la liste est recalculée (vide si plus de mot du nouveau jour).
+
+### US-13 — Refaire une passe sur les mots difficiles (P1)
+En tant qu'apprenant, je veux refaire une passe uniquement sur mes mots difficiles, afin de me concentrer sur ce qui résiste.
+- **AC-13.1** « Refaire les mots difficiles » n'est visible que si ≥ 1 mot « À revoir encore » ; la passe contient exactement ces mots.
+- **AC-13.2** Si tous « Retenu » : message « Bravo, tout est retenu », pas de bouton de refaite ; « Refaire tous les mots » reste disponible.
+- **AC-13.3** Enchaîner 3 passes : à chaque fois seul le sous-ensemble précédent est repris ; le marquage n'est jamais persisté (fermer/rouvrir l'app : rien).
+
+### US-14 — Préserver la répétition espacée (P0)
+En tant qu'apprenant, je veux que réviser ne fausse ni ma progression ni mes statistiques, afin que mes chiffres restent fiables.
+- **AC-14.1** (état persisté sérialisé avant/après une passe complète, 100 % « Retenu » puis une autre 100 % « À revoir encore ») : strictement identique (`progress`, `cardsPerDay`, `activeDays`, `bestStreak`, `testHistory`).
+- **AC-14.2** L'objectif « x / objectif », la série, vus/maîtrisés/% global sont identiques avant et après.
+- **AC-14.3** Le tirage de session suivant et la sélection du test (RG-63) sont identiques à état égal avant/après révision (mêmes entrées, même RNG graine).
+- **AC-14.4** Aucune écriture AsyncStorage pendant la révision (espion `setItem` : 0 appel dû à la révision).
+- **AC-14.5** `STORAGE_VERSION` reste 1 ; un état v1.0 se charge sans migration.
+
+### US-15 — Accéder facilement à la révision (P1)
+En tant qu'apprenant, je veux lancer la révision depuis les écrans naturels, afin de ne pas chercher.
+- **AC-15.1** Accueil : carte « Mots du jour : n » visible si n ≥ 1, absente si n = 0 ; « Commencer une session » reste en 1 tap.
+- **AC-15.2** Onglet Apprendre : entrée « Mots du jour (n) » toujours présente ; à n = 0, l'état vide (RG-133) avec bouton « Commencer une session » fonctionnel.
+- **AC-15.3** Récap de session : bouton « Revoir les mots du jour » ouvre la liste de **tous** les mots du jour ; « Nouvelle session » et « Accueil » inchangés.
+- **AC-15.4** Fonctionne en mode avion ; aucune requête réseau.
+
+### US-16 — Écouter les mots du jour (P2)
+En tant qu'apprenant, je veux entendre les mots en révisant, afin de fixer la prononciation.
+- **AC-16.1** Sur carte et sur chaque ligne de la liste, le haut-parleur lit le mot (en-US, 0,9) ; au verso/ligne, l'exemple aussi.
+- **AC-16.2** Appuis répétés : pas de lectures superposées ; changer de carte ou quitter coupe la lecture ; sans voix : pas de crash (RG-81/82).
+
+## 13. Priorités
+- **P0** : RG-100 → 103, 105 (hors TTS), 110 → 113, 115, 120 → 122, 133 ; US-11, US-12, US-14.
+- **P1** : RG-104, 106, 114, 130 → 132 ; US-13, US-15.
+- **P2** : RG-116 ; US-16.
+
+## 14. Définition de « fait » (QA) pour v1.1
+1. Tous les AC de la story passent sur Android et iOS (ou Expo Go), en mode avion.
+2. Tests unitaires verts, **date et RNG injectables**, fonctions pures dans `src/domain/` (ex. `getDailyWords(progress, words, now)`, `sortDailyWords`, `buildReviewQueue(words, progress, rng)`, `hardWords(marks)`) : cas AC-11.1 à 11.8, AC-12.3 / 12.4, AC-13.1, minuit et changement d'heure.
+3. Test de non-régression d'intégrité (AC-14.1 → 14.5) vert ; suites existantes (flows, qa-flows, corrections-v2, qa-design-v2) inchangées et vertes.
+4. `tsc --noEmit` et lint sans erreur ; `package.json` sans nouvelle dépendance ; `STORAGE_VERSION = 1`.
+5. Parcours sans crash : session → récap → « Revoir les mots du jour » → passe → mots difficiles → accueil ; réinitialisation → état vide.
+6. Textes en français, validés par le Designer (nouveaux écrans : liste, passe, fin de passe, état vide, carte Accueil).
+
+## 15. Décisions à valider par le client
+- **D-01** Définition « du jour » = au moins une évaluation de carte en session aujourd'hui (date locale, via `lastSeenAt`). Les mots seulement touchés par le test n'y sont pas. Alternative : fenêtre glissante 24 h (rejetée : incohérente avec objectif/série basés sur la date locale).
+- **D-02** Révision = **lecture seule** : aucun effet sur boîtes, seenCount, lastSeenAt, objectif, série. Alternative écartée : « À revoir encore » ramène à la boîte 0 (jamais de montée) ; plus de pédagogie mais modifie lastSeenAt/le tirage et complexifie ; envisageable en v1.2.
+- **D-03** Indicateur « Su / À revoir » = état courant dérivé de la boîte (0 = à revoir), donc il peut refléter un test passé aujourd'hui ; aucun champ ajouté au store.
+- **D-04** Filtres non appliqués à la révision du jour.
+- **D-05** Révision active = cartes recto/verso avec libellés « Retenu / À revoir encore » ; ordre : mots difficiles d'abord, mélange intra-groupe ; passe « difficiles uniquement » éphémère, sans plafond de taille.
+- **D-06** Points d'entrée : Accueil (si n ≥ 1), onglet Apprendre (toujours), récap de session ; état vide dédié ; passe non reprise après fermeture.
+- **D-07** Mini-quiz QCM exclu de v1.1 (recoupe le test hebdo et poserait la question des effets sur Leitner) ; à réévaluer si le client le souhaite.
+- **D-08** Mot évalué aujourd'hui puis le test fait chuter sa boîte : il reste du jour (« À revoir »). Changement de fuseau horaire : la liste suit la date locale courante (pas de correctif).
+
+### Validation Client — v1.1
+✅ Décisions D-01 à D-08 **approuvées** par le client (révision en lecture seule, pas de migration du store, pas de mini-quiz, filtres non appliqués à la révision).
