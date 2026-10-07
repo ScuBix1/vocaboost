@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 
 import { WORDS } from '@/data/words';
 import { toLocalDateKey } from '@/domain/dates';
+import { getTodayWords } from '@/domain/dailyWords';
 import { filterPool } from '@/domain/filters';
 import { computeCategoryStats, computeGlobalStats } from '@/domain/stats';
 import { cardsOnDay, computeBestStreak, computeCurrentStreak, computeGoalStatus, getWeekDays } from '@/domain/streak';
@@ -60,4 +61,12 @@ export function useWeekDays(now: Date) {
   const activeDays = useLearnerStore((s) => s.activeDays);
   const todayKey = toLocalDateKey(now);
   return useMemo(() => getWeekDays(activeDays, todayKey), [activeDays, todayKey]);
+}
+
+/** Mots du jour (v1.1, RG-100 → RG-106) : recalculés selon `now` ; les filtres sont ignorés (RG-104). */
+export function useTodayWords(now: Date) {
+  const progress = useLearnerStore((s) => s.progress);
+  const todayKey = toLocalDateKey(now);
+  // `todayKey` seul change au passage de minuit ; `now` est relu à chaque focus.
+  return useMemo(() => getTodayWords(WORDS, progress, now), [progress, todayKey]);
 }

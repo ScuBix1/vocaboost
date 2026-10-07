@@ -175,3 +175,39 @@ Source : `docs/05-rapport-qa.md` §8. Aucune règle métier modifiée, aucune d�
 **Tests** : `qa-design-v2` (V2-01 en test normal), nouveaux `corrections-v2.test.tsx` (verrou d'arrivée, V2-06, géométrie des confettis, `aria-hidden`) et `typographie.test.ts`. Les parcours de test qui répondent juste après « Suivant » attendent désormais la fin du verrou (`waitGuard`), comme en session.
 
 **Vérification web** (export statique, Chromium/Playwright, 390×844 et 360×740, avec et sans `prefers-reduced-motion`) : double clic au centre de « Suivant » → 0 réponse à l'aveugle sur 10 (390×844, 360×740, 360×640, 320×568) ; double clic sur le dernier « Je savais » → reste sur le résultat ; « Je ne savais pas » sur une ligne ; confettis autour de Vobi uniquement ; aucune erreur console. Rendu régénéré : `docs/design/rendu-app-v2.png`.
+
+---
+
+# v1.1 — Mots du jour
+
+Source : `docs/02-spec-pm.md` §10 à §15, `docs/03-design.md` « v1.1 », `docs/design/maquettes-revision.html`. **Aucune migration** (`STORAGE_VERSION = 1`, `PersistedData` et `sanitizePersistedData` inchangés), **aucune dépendance**, aucune règle existante modifiée, aucun test supprimé ni affaibli (aucun test existant n'a dû être modifié).
+
+## Décisions de code
+- **Lecture seule par construction** : `domain/dailyWords.ts` est pur (date et RNG injectables) ; la passe vit dans `store/useReviewStore.ts`, un store zustand **sans `persist`** (comme `useResultsStore`) qui n'importe ni n'appelle jamais `useLearnerStore.evaluateCard` / `completeTest`. Les écrans de révision ne font que **lire** `progress`.
+- **Instantané figé** (RG-102) : au démarrage, `startDaily` copie la liste de mots et la progression (immuable) ; la passe, « Refaire tous les mots » (même instantané, nouvel ordre ; y compris après une passe « difficiles », point 2 du design §v1.1.13) et la passe « difficiles » travaillent dessus. La liste, elle, est recalculée au focus (`useNow` + `useTodayWords`, clé = date locale → vide à minuit).
+- **Définition RG-100** : `seenCount ≥ 1` et `toLocalDateKey(lastSeenAt) === toLocalDateKey(now)` ; `lastSeenAt` invalide, `null` ou id inconnu ignorés. Statut dérivé de `box` (0 = « À revoir »).
+- **Hydratation web** : `useClientReady` sur la liste, la passe et la carte Accueil / entrée Apprendre (compte à 0 tant que le store n'est pas prêt), comme `session.tsx`. Résultat : 0 erreur d'hydratation sur `/review`, `/review-run`, `/review-result` (chargement direct).
+- **Fin de passe** : `review-result` garde en `useRef` la passe terminée affichée, pour que « Refaire … » (qui remplace le store avant le démontage) ne redirige pas vers la liste. La dernière carte déclenche un seul `router.replace` (effet sur `finished` + verrou `useActionGuard`).
+- Garde-fous : `useArrivalGuard` sur liste, vide, fin, boutons de navigation ; `useActionGuard` sur « Retourner » / « Retenu » / « À revoir encore » / « Réviser ces mots » / « Refaire … » (silencieux, pas de grisé).
+- Réduire les animations : slide de carte remplacé par un fondu (comme la session) ; Flashcard et Vobi gèrent déjà le réglage ; aucune animation propre aux écrans de liste et de fin.
+- Libellés avec U+00A0 avant `! ? : ;`, y compris `accessibilityLabel` (`typographie.test.ts` vert).
+
+## Traçabilité US → fichiers
+| US / RG | Implémentation | Tests |
+|---|---|---|
+| US-11 (RG-100 → 107, AC-11.1 → 11.8) | `domain/dailyWords.ts` (`getTodayWords`, `isDailyWord`, `sortDailyWords`, `dailyStatus`), `hooks/useLearnerSelectors.ts` (`useTodayWords`), `app/review.tsx`, `components/DailyWordRow.tsx`, `components/InfoNote.tsx`, `components/Badge.tsx` (`review`), `components/messages.ts` | `domain/__tests__/dailyWords.test.ts`, `__tests__/review-flows.test.tsx`, `components/__tests__/review-components.test.tsx` |
+| US-12 (RG-110 → 115, AC-12.1 → 12.8) | `domain/dailyWords.ts` (`buildReviewQueue`, `startReviewPass`, `answerReviewCard`), `store/useReviewStore.ts`, `app/review-run.tsx`, `app/review-result.tsx`, `app/_layout.tsx` (routes) | idem |
+| US-13 (RG-114, AC-13.1 → 13.3) | `hardWords`, `useReviewStore.startHard`, `app/review-result.tsx` | idem |
+| US-14 (RG-120 → 122, AC-14.1 → 14.5) | architecture ci-dessus ; aucune écriture `useLearnerStore` | `review-flows.test.tsx` : état persisté sérialisé identique avant/après 3 passes, 0 appel `AsyncStorage.setItem`, tirage de session et sélection du test identiques (même graine), `STORAGE_VERSION === 1`, store sans `persist` |
+| US-15 (RG-130 → 134, AC-15.1 → 15.4) | `app/(tabs)/index.tsx` (carte + « Revoir »), `app/(tabs)/learn.tsx` (entrée), `app/session-result.tsx` + `components/Button.tsx` (variante `link`), état vide dans `app/review.tsx` | `review-flows.test.tsx` |
+| US-16 (RG-116, AC-16.1) | `services/speech.ts` réutilisé ; `SpeakButton` exporté de `components/Flashcard.tsx` ; arrêt au changement de carte, à « Quitter » et au démontage | `review-flows.test.tsx` |
+
+## Vérifications
+- `npx tsc --noEmit` : 0 erreur. `npx jest` : 23 suites, 241 tests verts (191 → 241 : +18 domaine, +26 parcours/intégrité, +6 composants ; aucun supprimé).
+- `npx expo export --platform web` OK ; Playwright (Chromium) à 390×844 et 360×740, état pilote injecté dans `localStorage` (`vocaboost-store`) : Accueil avec carte, liste, recto, verso, fin de passe (4 / 7 retenus), état vide, Accueil sans carte ; aucune erreur console hors l'avertissement `useNativeDriver` déjà présent en v2. Rendu : `docs/design/rendu-revision.png` (ligne 1 : 390×844, ligne 2 : 360×740).
+
+## Écarts restants vs maquettes
+- Le fondu au-dessus de « Réviser ces mots » est un aplat translucide de 16 pt (pas de dégradé : aucune dépendance) ; léger bord visible sur les lignes qui défilent dessous.
+- À 360×740, la fin de passe avec 3 mots à revoir fait défiler la carte « À revoir encore » sous les boutons fixés (contenu défilant, comportement prévu au design pour N grand).
+- La barre de progression d'une passe n'a le minimum visible de 6 % qu'à partir de 50 cartes (à N petit elle part vide, comme en session).
+- Non vérifié sur appareil réel (iOS / Android, TTS) : seulement Jest (expo-speech simulé) et Chromium.

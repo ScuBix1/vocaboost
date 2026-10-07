@@ -2,7 +2,7 @@
  * Accueil v2 (design §5.1) — US-01 (session en 1 tap), AC-04.1, AC-06.5 / RG-53, statut du test (RG-72).
  */
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { ResultBadge } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -18,7 +18,8 @@ import { Vobi } from '@/components/Vobi';
 import { formatFilterSummary } from '@/domain/filters';
 import { dayUnit, plural } from '@/domain/format';
 import { TEST_MIN_SEEN } from '@/domain/weeklyTest';
-import { useGlobalStats, useGoalStatus, useStreaks, useTestStatus, useWeekDays } from '@/hooks/useLearnerSelectors';
+import { useGlobalStats, useGoalStatus, useStreaks, useTestStatus, useTodayWords, useWeekDays } from '@/hooks/useLearnerSelectors';
+import { useClientReady } from '@/hooks/useClientReady';
 import { useNow } from '@/hooks/useNow';
 import { useLearnerStore } from '@/store/useLearnerStore';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -30,9 +31,12 @@ export default function HomeScreen() {
   const goal = useGoalStatus(now);
   const week = useWeekDays(now);
   const testStatus = useTestStatus(now);
+  const dailyCount = useTodayWords(now).length;
+  const clientReady = useClientReady();
   const filters = useLearnerStore((s) => s.filters);
   const filterSummary = formatFilterSummary(filters);
   const streakOff = streaks.current === 0;
+  const { fontScale } = useWindowDimensions();
 
   return (
     <Screen edges={['top']}>
@@ -112,6 +116,46 @@ export default function HomeScreen() {
           <WeekStrip days={week} testID="home-week" />
         </Card>
       </View>
+
+      {/* Carte « Mots du jour » (v1.1, RG-130) : seulement si n ≥ 1 ; la carte n'est pas pressable, le bouton l'est. */}
+      {clientReady && dailyCount >= 1 ? (
+        <Card
+          contentStyle={[styles.dailyFace, fontScale > 1.3 && styles.dailyFaceLarge]}
+          style={styles.dailyCard}
+          testID="home-daily-words"
+        >
+          <View style={styles.dailyRow}>
+            <View style={styles.bookBox}>
+              <Text style={styles.targetEmoji}>📖</Text>
+            </View>
+            <View style={styles.masteredBody}>
+              <Text style={styles.h3}>{`Mots du jour : ${dailyCount}`}</Text>
+              <Text style={styles.caption}>Relis-les pour mieux les retenir</Text>
+            </View>
+            {fontScale > 1.3 ? null : (
+              <Button
+                label="Revoir"
+                variant="secondary"
+                size="sm"
+                accessibilityLabel={`Revoir les mots du jour (${dailyCount})`}
+                onPress={() => router.push('/review')}
+                style={styles.dailyButton}
+                testID="home-daily-review"
+              />
+            )}
+          </View>
+          {fontScale > 1.3 ? (
+            <Button
+              label="Revoir"
+              variant="secondary"
+              size="sm"
+              accessibilityLabel={`Revoir les mots du jour (${dailyCount})`}
+              onPress={() => router.push('/review')}
+              testID="home-daily-review"
+            />
+          ) : null}
+        </Card>
+      ) : null}
 
       <Card
         onPress={() => router.navigate('/progress')}
@@ -233,6 +277,19 @@ const styles = StyleSheet.create({
   streakValueOff: { color: colors.inkMuted },
   streakUnit: { ...typography.caption, lineHeight: 15, color: colors.ink, flexShrink: 1 },
   streakHint: { ...typography.caption, fontSize: 12, lineHeight: 15, color: colors.inkMuted },
+  dailyCard: { borderRadius: 22 },
+  dailyFace: { padding: 14, gap: 10, borderColor: colors.primary },
+  dailyFaceLarge: { gap: 12 },
+  dailyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dailyButton: { minWidth: 88 },
+  bookBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   masteredFace: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   targetBox: {
     width: 44,

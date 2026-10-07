@@ -7,7 +7,7 @@ import { colors, radius, typography } from '@/theme/tokens';
 
 export interface BadgeProps {
   label: string;
-  variant?: 'default' | 'level' | 'success' | 'danger';
+  variant?: 'default' | 'level' | 'success' | 'danger' | 'review';
   size?: 'sm' | 'lg';
   emoji?: string;
 }
@@ -17,6 +17,8 @@ const VARIANTS = {
   level: { bg: colors.primarySoft, fg: colors.primaryInk },
   success: { bg: colors.successSoft, fg: colors.successInk },
   danger: { bg: colors.dangerSoft, fg: colors.dangerInk },
+  /** « À revoir » (v1.1) : jaune chaud, jamais de rouge (ce n'est pas une faute). */
+  review: { bg: colors.sunSoft, fg: colors.sunInk },
 } as const;
 
 export function Badge({ label, variant = 'default', size = 'sm', emoji }: BadgeProps) {

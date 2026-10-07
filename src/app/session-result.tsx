@@ -56,6 +56,12 @@ export default function SessionResultScreen() {
         <>
           <Button label="Nouvelle session" onPress={() => !justArrived() && router.replace('/session')} testID="result-new-session" />
           <Button label="Accueil" variant="secondary" onPress={() => !justArrived() && goHome()} testID="result-home" />
+          <Button
+            label="Revoir les mots du jour"
+            variant="link"
+            onPress={() => !justArrived() && router.push('/review')}
+            testID="result-review-daily"
+          />
         </>
       }
     >

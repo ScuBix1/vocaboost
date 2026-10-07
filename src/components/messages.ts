@@ -19,3 +19,12 @@ export function sessionResultSubtitle(known: number, total: number): string {
     ? "Excellent rythme, tes mots s'accrochent."
     : 'Bel effort ! Chaque carte te rapproche du but.';
 }
+
+/** Message unique « réviser n'a pas d'effet » (design v1.1 §v1.1.7). */
+export const REVIEW_NOTE = "Réviser est un bonus\u00A0: ça ne change ni ton objectif, ni ta série, ni ton rythme de révision.";
+export const REVIEW_NOTE_HARD = 'Les mots à revoir encore sont juste signalés ici.';
+
+/** « 1 mot étudié aujourd'hui » / « 12 mots étudiés aujourd'hui » (RG-105). */
+export function dailyCountLabel(n: number): string {
+  return n === 1 ? "1 mot étudié aujourd'hui" : `${n} mots étudiés aujourd'hui`;
+}

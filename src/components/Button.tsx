@@ -2,13 +2,13 @@
  * Bouton 3D du design system (design §4.1) : face colorée + lèvre pleine, enfoncement à l'appui.
  */
 import { useRef } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, depth, spacing, typography } from '@/theme/tokens';
 
 import { PressableRaised } from './Raised';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'softDanger' | 'sun';
+export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'softDanger' | 'sun' | 'link';
 
 export interface ButtonProps {
   label: string;
@@ -45,6 +45,8 @@ export const BUTTON_VARIANTS: Record<ButtonVariant | 'disabled', VariantStyle> =
   success: { face: colors.success, lip: colors.successLip, text: colors.textOnColor },
   softDanger: { face: colors.surface, lip: colors.border, text: colors.danger, border: colors.border },
   danger: { face: colors.danger, lip: colors.dangerLip, text: colors.textOnColor },
+  /** Tertiaire (v1.1) : sans face ni lèvre, texte Grape. */
+  link: { face: 'transparent', lip: 'transparent', text: colors.primary },
   disabled: { face: colors.disabledBg, lip: colors.disabledLip, text: colors.disabledText },
 };
 
@@ -82,6 +84,25 @@ export function Button({
     lastPress.current = now;
     onPress();
   };
+
+  if (resolved === 'link') {
+    return (
+      <Pressable
+        onPress={handlePress}
+        disabled={inactive}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled: inactive, busy: loading }}
+        testID={testID}
+        style={({ pressed }) => [styles.link, pressed && styles.linkPressed, style]}
+      >
+        <Text style={[styles.label, { color }]} numberOfLines={2}>
+          {label}
+        </Text>
+      </Pressable>
+    );
+  }
 
   return (
     <PressableRaised
@@ -124,5 +145,7 @@ export function Button({
 const styles = StyleSheet.create({
   face: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  link: { minHeight: 44, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  linkPressed: { opacity: 0.6 },
   label: { ...typography.button, textAlign: 'center', flexShrink: 1 },
 });

@@ -37,7 +37,7 @@ const LONG_WORD_LENGTH = 14;
 const SPEAK_SIZE = 56;
 const CARD_DEPTH = depth.lg;
 
-function SpeakButton({
+export function SpeakButton({
   label,
   onPress,
   size = 44,

@@ -12,7 +12,9 @@ import { Vobi } from '@/components/Vobi';
 import { describeCategories, describeLevels } from '@/domain/filters';
 import { SESSION_SIZE } from '@/domain/session';
 import { CATEGORY_IDS, CATEGORY_LABELS } from '@/domain/types';
-import { useSessionPool } from '@/hooks/useLearnerSelectors';
+import { useSessionPool, useTodayWords } from '@/hooks/useLearnerSelectors';
+import { useClientReady } from '@/hooks/useClientReady';
+import { useNow } from '@/hooks/useNow';
 import { useLearnerStore } from '@/store/useLearnerStore';
 import { categoryColors, colors, spacing, typography } from '@/theme/tokens';
 
@@ -27,6 +29,10 @@ export default function LearnScreen() {
   const filters = useLearnerStore((s) => s.filters);
   const resetFilters = useLearnerStore((s) => s.resetFilters);
   const poolSize = pool.length;
+  const now = useNow();
+  const dailyCount = useTodayWords(now).length;
+  const clientReady = useClientReady();
+  const shownDaily = clientReady ? dailyCount : 0;
 
   return (
     <Screen
@@ -63,6 +69,29 @@ export default function LearnScreen() {
           ) : null}
         </Card>
       )}
+
+      {/* Entrée permanente « Mots du jour » (v1.1, RG-131) ; à n = 0, mène à l'état vide. */}
+      <Card
+        onPress={() => router.push('/review')}
+        accessibilityLabel={`Mots du jour, ${shownDaily} ${shownDaily === 1 ? 'mot' : 'mots'}. Ouvrir`}
+        contentStyle={styles.dailyFace}
+        testID="learn-daily-words"
+      >
+        <View style={styles.bookBox}>
+          <Text style={styles.bookEmoji}>📖</Text>
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.h3}>Mots du jour ({shownDaily})</Text>
+          <Text style={styles.caption}>
+            {shownDaily >= 1
+              ? "Relire et réviser ce que tu as étudié aujourd'hui"
+              : 'Rien pour l\'instant : fais une session.'}
+          </Text>
+        </View>
+        <Text style={styles.chevron} accessible={false}>
+          ›
+        </Text>
+      </Card>
 
       <Card title="Filtres">
         <View
@@ -108,6 +137,19 @@ const styles = StyleSheet.create({
   body: { ...typography.body, color: colors.ink },
   onPrimary: { ...typography.body, color: colors.textOnColor },
   onPrimaryCaption: { ...typography.caption, color: colors.textOnColor },
+  h3: { ...typography.h3, color: colors.ink },
+  caption: { ...typography.caption, color: colors.inkMuted },
+  dailyFace: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  bookBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookEmoji: { fontSize: 22 },
+  chevron: { fontSize: 22, fontWeight: '900', color: colors.inkMuted },
   dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   dot: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   dotOff: { opacity: 0.35 },

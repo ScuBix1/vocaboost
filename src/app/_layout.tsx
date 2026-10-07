@@ -30,6 +30,9 @@ export default function RootLayout() {
         <Stack.Screen name="session-result" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="test-run" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="test-result" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="review" options={{ headerShown: false }} />
+        <Stack.Screen name="review-run" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="review-result" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: 'Réglages', headerBackTitle: 'Retour' }} />
       </Stack>
       {hasHydrated ? null : (
