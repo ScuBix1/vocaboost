@@ -19,6 +19,7 @@ export function fakeWord(i: number, overrides: Partial<Word> = {}): Word {
     category: 'house',
     level: 'A1',
     example: `word${i} example`,
+    exampleFr: `exemple du mot ${i}`,
     ...overrides,
   };
 }

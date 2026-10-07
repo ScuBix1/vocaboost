@@ -3,11 +3,12 @@
  * Fonctions d'affichage pures, sans règle métier.
  */
 import { dayUnit, plural } from '@/domain/format';
+import { SESSION_SIZE } from '@/domain/session';
 import type { GoalStatus } from '@/domain/streak';
 
 /** Message de Vobi sur l'Accueil, par priorité décroissante (design §5.1). */
 export function homeMessage(seen: number, goal: GoalStatus, streak: number): string {
-  if (seen === 0) return 'Salut ! Prêt pour tes 10 premiers mots ?';
+  if (seen === 0) return `Salut ! Prêt pour tes ${SESSION_SIZE} premiers mots ?`;
   if (goal.reached) return 'Objectif atteint ✅ Chaque carte en plus compte !';
   if (goal.done === 0 && streak > 0) return `🔥 ${streak} ${dayUnit(streak)} ! Une carte aujourd'hui et la flamme continue.`;
   return `Encore ${goal.remaining} ${plural(goal.remaining, 'carte')} et l'objectif du jour est dans la poche 💪`;

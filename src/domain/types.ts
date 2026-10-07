@@ -44,6 +44,8 @@ export interface Word {
   category: CategoryId;
   level: Level;
   example: string;
+  /** Traduction française de `example` (RG-155) ; jamais affichée au recto ni dans le test. */
+  exampleFr: string;
 }
 
 /** État d'apprentissage d'un mot (RG-10 → RG-13). */
@@ -78,9 +80,9 @@ export interface TestRecord {
 }
 
 /** Valeurs autorisées pour l'objectif quotidien (RG-44). */
-export const DAILY_GOAL_OPTIONS = [10, 20, 30] as const;
+export const DAILY_GOAL_OPTIONS = [10, 15, 20, 30] as const;
 export type DailyGoal = (typeof DAILY_GOAL_OPTIONS)[number];
-export const DEFAULT_DAILY_GOAL: DailyGoal = 10;
+export const DEFAULT_DAILY_GOAL: DailyGoal = 15;
 
 /** Données persistées (RG-91). La banque de mots n'en fait pas partie. */
 export interface PersistedData {

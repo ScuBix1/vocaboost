@@ -138,7 +138,7 @@ describe('QA — session', () => {
     await fireEvent.press(known);
     const cards = Object.values(useLearnerStore.getState().cardsPerDay);
     expect(cards).toEqual([1]);
-    expect(screen.getAllByText('Carte 2 / 10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Carte 2 / 15').length).toBeGreaterThan(0);
   });
 
   // BUG-01 (majeur, design §5.4) : « Retourner » (pleine largeur) est remplacé au même endroit par
@@ -174,9 +174,9 @@ describe('QA — session', () => {
     expect(useLearnerStore.getState().activeDays).toEqual([]);
   });
 
-  it('session complète → « Nouvelle session » tire 10 nouvelles cartes (3 nouveaux + 7 révisions)', async () => {
+  it('session complète → « Nouvelle session » tire 15 nouvelles cartes (5 nouveaux + 10 révisions)', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 15; i++) {
       await fireEvent.press(screen.getByTestId('session-flip'));
       await waitGuard();
       await fireEvent.press(screen.getByTestId('session-known'));
@@ -185,23 +185,23 @@ describe('QA — session', () => {
     await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
     await waitGuard(); // tap délibéré : le résultat ignore les taps des 300 premières ms
     await fireEvent.press(screen.getByTestId('result-new-session'));
-    await waitFor(() => expect(screen.getAllByText('Carte 1 / 10').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('Carte 1 / 15').length).toBeGreaterThan(0));
   });
 });
 
 describe('QA re-test — verrou anti-double-tap (300 ms) et usage rapide normal', () => {
   const advance = (ms: number) => act(() => jest.advanceTimersByTime(ms));
 
-  it('usage rapide mais délibéré (évaluation 350 ms après le retournement, retournement 350 ms après l’évaluation) : 10 cartes sans tap perdu', async () => {
+  it('usage rapide mais délibéré (évaluation 350 ms après le retournement, retournement 350 ms après l’évaluation) : 15 cartes sans tap perdu', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 15; i++) {
       await advance(350);
       await fireEvent.press(screen.getByTestId('session-flip'));
       await advance(350);
       await fireEvent.press(screen.getByTestId('session-known'));
     }
     await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
-    expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([10]);
+    expect(Object.values(useLearnerStore.getState().cardsPerDay)).toEqual([15]);
   });
 
   it('les boutons d’évaluation sont désactivés pendant le verrou puis réactivés', async () => {

@@ -61,7 +61,7 @@ export default function LearnScreen() {
       ) : (
         <Card tone="primary" title="Ta prochaine session">
           <Text style={styles.onPrimary}>
-            10 cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore.
+            {SESSION_SIZE} cartes tirées au hasard, en priorité les mots que tu ne maîtrises pas encore.
           </Text>
           <Text style={styles.onPrimaryCaption}>Mots disponibles avec tes filtres : {poolSize}</Text>
           {poolSize < SESSION_SIZE ? (

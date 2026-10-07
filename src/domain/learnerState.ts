@@ -177,3 +177,30 @@ export function sanitizePersistedData(raw: unknown): PersistedData {
     dailyGoal,
   };
 }
+
+/** Version du store à partir de laquelle l'objectif par défaut est 15 (RG-147). */
+const GOAL_MIGRATION_FROM_VERSION = 1;
+/** Ancien objectif par défaut, converti une seule fois (RG-147, D-12). */
+const LEGACY_DEFAULT_GOAL = 10;
+
+/**
+ * Migration du store persisté (RG-147, AC-18.4 → AC-18.8). Appelée par `migrate` du store, donc
+ * une seule fois par changement de version, jamais à chaque lecture : elle ne doit PAS vivre dans
+ * `sanitizePersistedData` (rappelé à chaque lancement, elle écraserait un choix délibéré de 10).
+ * - version 1 et `dailyGoal === 10` → 15 ;
+ * - version 1 avec 20 / 30 → conservés ; absent ou invalide → 15 (défaut, via sanitize) ;
+ * - version 2, version future ou inconnue → aucune conversion ;
+ * - toutes les autres données passent par `sanitizePersistedData` (aucune perte).
+ * Fonction pure et idempotente.
+ */
+export function migrateLearnerData(persisted: unknown, fromVersion: number): PersistedData {
+  const data = sanitizePersistedData(persisted);
+  if (
+    fromVersion === GOAL_MIGRATION_FROM_VERSION &&
+    isRecord(persisted) &&
+    persisted.dailyGoal === LEGACY_DEFAULT_GOAL
+  ) {
+    return { ...data, dailyGoal: DEFAULT_DAILY_GOAL };
+  }
+  return data;
+}

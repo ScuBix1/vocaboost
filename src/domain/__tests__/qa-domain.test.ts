@@ -107,9 +107,9 @@ describe('QA — série aux frontières de jour (fuseau et DST)', () => {
 });
 
 describe('QA — composition de session (toutes combinaisons nouveaux / révisions)', () => {
-  it('taille = min(10, pool), sans doublon, nouveaux = min(nouveaux dispo, max(3, 10 − révisions))', () => {
-    for (let nNew = 0; nNew <= 13; nNew++) {
-      for (let nRev = 0; nRev <= 13; nRev++) {
+  it('taille = min(15, pool), sans doublon, nouveaux = min(nouveaux dispo, max(5, 15 − révisions))', () => {
+    for (let nNew = 0; nNew <= 20; nNew++) {
+      for (let nRev = 0; nRev <= 20; nRev++) {
         const pool: Word[] = fakeWords(nNew + nRev);
         const progress: ProgressMap = {};
         pool.slice(nNew).forEach((w, i) => (progress[w.id] = seen(i % 6)));
@@ -117,9 +117,9 @@ describe('QA — composition de session (toutes combinaisons nouveaux / révisio
           const s = composeSession(pool, progress, createSeededRng(seed * 97 + nNew * 13 + nRev));
           const ids = s.map((w) => w.id);
           expect(new Set(ids).size).toBe(ids.length);
-          expect(s.length).toBe(Math.min(10, nNew + nRev));
+          expect(s.length).toBe(Math.min(15, nNew + nRev));
           const newInSession = s.filter((w) => !progress[w.id]).length;
-          const expectedNew = Math.min(nNew, Math.max(3, 10 - nRev));
+          const expectedNew = Math.min(nNew, Math.max(5, 15 - nRev));
           expect(newInSession).toBe(expectedNew);
         }
       }
@@ -136,7 +136,7 @@ describe('QA — composition de session (toutes combinaisons nouveaux / révisio
     const progress: ProgressMap = Object.fromEntries(WORDS.slice(0, 50).map((w, i) => [w.id, seen(i % 6)]));
     for (const rng of [() => 0, () => 0.9999999999]) {
       const s = composeSession(WORDS, progress, rng);
-      expect(new Set(s.map((w) => w.id)).size).toBe(10);
+      expect(new Set(s.map((w) => w.id)).size).toBe(15);
     }
   });
 });
@@ -222,7 +222,7 @@ describe('QA — lecture défensive / migration', () => {
       bestStreak: 2.5,
       testHistory: [{ weekId: '2026-W41' }],
       filters: { categories: [], levels: ['Z9', 'B1'] },
-      dailyGoal: 15,
+      dailyGoal: 25,
     });
     expect(Object.keys(data.progress)).toEqual(['door']);
     expect(data.activeDays).toEqual([]);
@@ -231,7 +231,7 @@ describe('QA — lecture défensive / migration', () => {
     expect(data.testHistory).toEqual([]);
     expect(data.filters.categories).toHaveLength(10);
     expect(data.filters.levels).toEqual(['B1']);
-    expect(data.dailyGoal).toBe(10);
+    expect(data.dailyGoal).toBe(15);
   });
 
   it('valeurs exotiques au niveau racine (null, nombre, tableau, chaîne) → état vierge', () => {

@@ -217,7 +217,7 @@ describe('Confetti (design §4.12)', () => {
 describe('Micro-textes v2 (design §2.4, §5.1, §5.4)', () => {
   const goal = (done: number) => computeGoalStatus(done, 10);
   it('message de Vobi par priorité décroissante', () => {
-    expect(homeMessage(0, goal(0), 0)).toBe('Salut ! Prêt pour tes 10 premiers mots ?');
+    expect(homeMessage(0, goal(0), 0)).toBe('Salut ! Prêt pour tes 15 premiers mots ?');
     expect(homeMessage(12, goal(10), 3)).toBe('Objectif atteint ✅ Chaque carte en plus compte !');
     expect(homeMessage(12, goal(0), 3)).toBe("🔥 3 jours ! Une carte aujourd'hui et la flamme continue.");
     expect(homeMessage(12, goal(4), 3)).toBe("Encore 6 cartes et l'objectif du jour est dans la poche 💪");

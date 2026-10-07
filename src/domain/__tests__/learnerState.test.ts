@@ -138,7 +138,7 @@ describe('Lecture défensive des données persistées (RG-93)', () => {
     expect(data.testHistory).toHaveLength(1);
     expect(data.filters.categories).toEqual(['travel']);
     expect(data.filters.levels).toEqual(['A1', 'A2', 'B1', 'B2']);
-    expect(data.dailyGoal).toBe(10);
+    expect(data.dailyGoal).toBe(15); // 25 invalide → nouveau défaut (RG-146)
     expect(data.bestStreak).toBe(2);
   });
 });

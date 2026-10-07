@@ -310,8 +310,8 @@ describe('Lecture seule (US-14, RG-120)', () => {
     expect(draw()).toEqual(before);
   });
 
-  it('AC-14.5 : STORAGE_VERSION reste 1', () => {
-    expect(STORAGE_VERSION).toBe(1);
+  it('AC-14.5 (remplacé par AC-18.4, v1.2) : STORAGE_VERSION passe à 2, la révision n’écrit toujours rien', () => {
+    expect(STORAGE_VERSION).toBe(2);
   });
 
   it('RG-120 : le store de révision est éphémère (jamais persisté) et vidable', () => {
@@ -361,7 +361,7 @@ describe('Points d’entrée (US-15)', () => {
   it('AC-15.3 : récap de session, « Revoir les mots du jour » ouvre tous les mots du jour ; les autres boutons sont inchangés', async () => {
     studyToday(6); // 6 mots étudiés plus tôt aujourd'hui
     await renderRouter(routes, { initialUrl: '/session' });
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 15; i++) {
       await waitGuard();
       await fireEvent.press(screen.getByTestId('session-flip'));
       await waitGuard();

@@ -17,6 +17,7 @@ import {
   applyCardEvaluation,
   applyTestCompletion,
   createInitialData,
+  migrateLearnerData,
   resetLearnerData,
   sanitizePersistedData,
 } from '@/domain/learnerState';
@@ -24,7 +25,7 @@ import type { CategoryId, DailyGoal, Level, PersistedData, TestRecord } from '@/
 import type { TestAnswer } from '@/domain/weeklyTest';
 
 export const STORAGE_KEY = 'vocaboost-store';
-export const STORAGE_VERSION = 1;
+export const STORAGE_VERSION = 2;
 
 /** Tentatives de lecture avant de considérer le stockage illisible (BUG-03). */
 const READ_ATTEMPTS = 3;
@@ -150,8 +151,8 @@ export const useLearnerStore = create<LearnerState>()(
       version: STORAGE_VERSION,
       storage: createJSONStorage(() => guardedAsyncStorage),
       partialize: (state) => pickData(state),
-      // Version future : repartir des champs reconnus plutôt que de planter.
-      migrate: (persisted) => sanitizePersistedData(persisted),
+      // v1 → v2 : objectif 10 → 15 une seule fois (RG-147) ; version future : champs reconnus, sans plantage.
+      migrate: (persisted, version) => migrateLearnerData(persisted, version),
       // Toute donnée lue est validée champ par champ (RG-93).
       merge: (persisted, current) => ({ ...current, ...sanitizePersistedData(persisted) }),
       onRehydrateStorage: () => () => {

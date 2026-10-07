@@ -3,60 +3,70 @@ import { WORDS } from '@/data/words';
 import { DEFAULT_FILTERS, filterPool } from '../filters';
 import { boxWeight, getWordProgress, isSeen } from '../leitner';
 import { createSeededRng, sampleWeighted } from '../random';
-import { becameMastered, composeSession, SESSION_SIZE } from '../session';
+import { becameMastered, composeSession, MAX_NEW_PER_SESSION, SESSION_SIZE } from '../session';
 import type { ProgressMap, Word } from '../types';
 import { fakeWords, progressFor } from './helpers';
 
 const countNew = (cards: Word[], progress: ProgressMap) =>
   cards.filter((w) => !isSeen(getWordProgress(progress, w.id))).length;
 
-describe('Composition de session (RG-20 → RG-26)', () => {
-  it('AC-01.2 / RG-20 : 10 cartes distinctes quand le pool compte ≥ 10 mots', () => {
+describe('Composition de session (RG-20 → RG-26, v1.2 : RG-140 → RG-144)', () => {
+  it('AC-17.1 / RG-140 : 15 cartes distinctes quand le pool compte ≥ 15 mots', () => {
+    expect(SESSION_SIZE).toBe(15);
+    expect(MAX_NEW_PER_SESSION).toBe(5);
     const cards = composeSession(WORDS, {}, createSeededRng(1));
     expect(cards).toHaveLength(SESSION_SIZE);
     expect(new Set(cards.map((w) => w.id)).size).toBe(SESSION_SIZE);
   });
 
-  it('AC-01.3 : pool de k < 10 mots → session de k cartes ; pool vide → aucune carte', () => {
+  it('AC-17.5 : pool de k < 15 mots → session de k cartes ; pool vide → aucune carte', () => {
     const pool = fakeWords(4);
     expect(composeSession(pool, progressFor(pool.slice(0, 2), 1), createSeededRng(2))).toHaveLength(4);
+    for (const k of [10, 14]) {
+      const p = fakeWords(k);
+      expect(composeSession(p, progressFor(p.slice(0, 4), 1), createSeededRng(k))).toHaveLength(k);
+    }
     expect(composeSession([], {}, createSeededRng(2))).toEqual([]);
   });
 
-  it('AC-02.1 : première session (aucun mot vu) → 10 nouveaux', () => {
+  it('AC-17.4 : première session (aucun mot vu) → 15 nouveaux', () => {
     const cards = composeSession(WORDS, {}, createSeededRng(3));
-    expect(countNew(cards, {})).toBe(10);
+    expect(cards).toHaveLength(15);
+    expect(countNew(cards, {})).toBe(15);
   });
 
-  it('AC-02.2 : ≥ 3 nouveaux et ≥ 7 vus → exactement 3 nouveaux + 7 révisions', () => {
+  it('AC-17.2 : ≥ 5 nouveaux et ≥ 10 vus → exactement 5 nouveaux + 10 révisions', () => {
     const progress = progressFor(WORDS.slice(0, 50), 2);
     for (let seed = 0; seed < 20; seed++) {
       const cards = composeSession(WORDS, progress, createSeededRng(seed));
-      expect(cards).toHaveLength(10);
-      expect(countNew(cards, progress)).toBe(3);
+      expect(cards).toHaveLength(15);
+      expect(countNew(cards, progress)).toBe(5);
     }
   });
 
-  it('AC-02.3 : 2 nouveaux restants et ≥ 8 vus → 2 nouveaux + 8 révisions', () => {
-    const pool = fakeWords(20);
-    const progress = progressFor(pool.slice(0, 18), 1);
-    const cards = composeSession(pool, progress, createSeededRng(4));
-    expect(cards).toHaveLength(10);
-    expect(countNew(cards, progress)).toBe(2);
+  // AC-17.3 : une ligne du tableau RG-142 par test (n nouveaux, r révisions → nouveaux + révisions).
+  it.each([
+    [20, 8, 7, 8],
+    [10, 5, 10, 5],
+    [2, 30, 2, 13],
+    [0, 40, 0, 15],
+    [4, 6, 4, 6],
+    [9, 5, 9, 5],
+    [200, 0, 15, 0],
+    [3, 30, 3, 12],
+  ])('AC-17.3 / RG-142 : %i nouveaux + %i révisions en pool → %i nouveaux + %i révisions', (n, r, expNew, expRev) => {
+    const pool = fakeWords(n + r);
+    const progress = progressFor(pool.slice(0, r), 1);
+    const cards = composeSession(pool, progress, createSeededRng(n * 31 + r));
+    expect(countNew(cards, progress)).toBe(expNew);
+    expect(cards.length - countNew(cards, progress)).toBe(expRev);
+    expect(cards).toHaveLength(expNew + expRev);
   });
 
-  it('AC-02.3 : 4 vus et ≥ 6 nouveaux → 4 révisions + 6 nouveaux', () => {
-    const pool = fakeWords(30);
-    const progress = progressFor(pool.slice(0, 4), 1);
-    const cards = composeSession(pool, progress, createSeededRng(5));
-    expect(cards).toHaveLength(10);
-    expect(countNew(cards, progress)).toBe(6);
-  });
-
-  it('RG-22 : tous les mots vus → 10 révisions', () => {
+  it('RG-142 : tous les mots vus → 15 révisions', () => {
     const progress = progressFor(WORDS, 5);
     const cards = composeSession(WORDS, progress, createSeededRng(6));
-    expect(cards).toHaveLength(10);
+    expect(cards).toHaveLength(15);
     expect(countNew(cards, progress)).toBe(0);
   });
 
@@ -133,5 +143,80 @@ describe('Composition de session (RG-20 → RG-26)', () => {
     expect(becameMastered(3, 4)).toBe(true);
     expect(becameMastered(4, 5)).toBe(false);
     expect(becameMastered(2, 3)).toBe(false);
+  });
+});
+
+describe('Composition de session v1.2 — invariants sur de nombreuses graines (AC-17.6)', () => {
+  /** Attendu RG-142 : [nouveaux, révisions] pour n nouveaux et r révisions en pool. */
+  const expected = (n: number, r: number): [number, number] => {
+    let newCount = Math.min(n, 5);
+    let reviewCount = Math.min(r, 10);
+    newCount = Math.min(n, newCount + (10 - reviewCount));
+    reviewCount = Math.min(r, 15 - newCount);
+    return [newCount, reviewCount];
+  };
+
+  it('taille, unicité et comptes conformes à RG-142 pour toutes les combinaisons (n, r ≤ 22) sur 200 graines', () => {
+    for (let n = 0; n <= 22; n++) {
+      for (let r = 0; r <= 22; r++) {
+        const pool = fakeWords(n + r);
+        const progress = progressFor(pool.slice(0, r), 2);
+        const [expNew, expRev] = expected(n, r);
+        for (let seed = 0; seed < 200; seed++) {
+          const cards = composeSession(pool, progress, createSeededRng(seed * 7919 + n * 101 + r));
+          expect(cards).toHaveLength(Math.min(15, n + r));
+          expect(new Set(cards.map((w) => w.id)).size).toBe(cards.length);
+          const newInSession = countNew(cards, progress);
+          expect([newInSession, cards.length - newInSession]).toEqual([expNew, expRev]);
+          expect(cards.every((w) => pool.includes(w))).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('pools de 0, 1, 14, 15 et 16 mots (tout vu / rien vu)', () => {
+    for (const k of [0, 1, 14, 15, 16]) {
+      const pool = fakeWords(k);
+      for (const seenCount of [0, k]) {
+        const progress = progressFor(pool.slice(0, seenCount), 1);
+        const cards = composeSession(pool, progress, createSeededRng(k + seenCount));
+        expect(cards).toHaveLength(Math.min(15, k));
+        expect(new Set(cards.map((w) => w.id)).size).toBe(cards.length);
+      }
+    }
+  });
+
+  it('un rng constant (0 ou 0.9999999) ne casse ni la taille ni l’unicité', () => {
+    const pool = fakeWords(40);
+    const progress = progressFor(pool.slice(0, 20), 1);
+    for (const value of [0, 0.9999999]) {
+      const cards = composeSession(pool, progress, () => value);
+      expect(cards).toHaveLength(15);
+      expect(new Set(cards.map((w) => w.id)).size).toBe(15);
+      expect(countNew(cards, progress)).toBe(5);
+    }
+  });
+
+  it('première session sur la vraie banque : 15 nouveaux distincts sur 200 graines', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const cards = composeSession(WORDS, {}, createSeededRng(seed));
+      expect(cards).toHaveLength(15);
+      expect(new Set(cards.map((w) => w.id)).size).toBe(15);
+    }
+  });
+
+  it('les ordres varient selon la graine et les nouveaux ne sont pas toujours en tête (RG-25)', () => {
+    const progress = progressFor(WORDS.slice(0, 60), 1);
+    const orders = new Set<string>();
+    const newPositions = new Set<number>();
+    for (let seed = 0; seed < 50; seed++) {
+      const cards = composeSession(WORDS, progress, createSeededRng(seed));
+      orders.add(cards.map((w) => w.id).join());
+      cards.forEach((w, i) => {
+        if (!isSeen(getWordProgress(progress, w.id))) newPositions.add(i);
+      });
+    }
+    expect(orders.size).toBeGreaterThan(40);
+    expect(Math.max(...newPositions)).toBeGreaterThan(5);
   });
 });

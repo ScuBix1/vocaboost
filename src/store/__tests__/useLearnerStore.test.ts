@@ -109,7 +109,7 @@ describe('Store persistant (RG-90 → RG-94)', () => {
     const state = useLearnerStore.getState();
     expect(state.hasHydrated).toBe(true);
     expect(state.progress).toEqual({});
-    expect(state.dailyGoal).toBe(10);
+    expect(state.dailyGoal).toBe(15); // défaut v1.2 (RG-146)
     expect(state.filters.levels).toHaveLength(4);
   });
 

@@ -48,28 +48,28 @@ beforeEach(() => {
 describe('Parcours Accueil → session → résultat (US-01, US-03)', () => {
   it('AC-01.1 : 1 tap sur « Commencer une session » affiche la 1re carte (recto)', async () => {
     await renderRouter(routes, { initialUrl: '/' });
-    expect(screen.getByText('Salut ! Prêt pour tes 10 premiers mots ?')).toBeTruthy(); // bulle de Vobi (design v2 §5.1)
+    expect(screen.getByText('Salut ! Prêt pour tes 15 premiers mots ?')).toBeTruthy(); // bulle de Vobi (design v2 §5.1)
     await fireEvent.press(screen.getByTestId('home-start-session'));
     await waitFor(() => expect(screen.getByTestId('flashcard-front')).toBeTruthy());
-    expect(screen.getAllByText('Carte 1 / 10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Carte 1 / 15').length).toBeGreaterThan(0);
   });
 
   it('AC-03.3 / AC-03.6 / AC-03.8 : évaluation après retournement, puis récap', async () => {
     await renderRouter(routes, { initialUrl: '/session' });
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
       // Boutons d'évaluation absents avant le retournement.
       expect(screen.queryByTestId('session-known')).toBeNull();
       await fireEvent.press(screen.getByTestId('session-flip'));
       await waitGuard();
-      await fireEvent.press(screen.getByTestId(i <= 6 ? 'session-known' : 'session-unknown'));
+      await fireEvent.press(screen.getByTestId(i <= 9 ? 'session-known' : 'session-unknown'));
       await waitGuard();
     }
     await waitFor(() => expect(screen.getByText('Session terminée !')).toBeTruthy());
     // Les compteurs s'animent de 0 à la valeur (design v2 §6) : on attend la valeur finale.
-    await waitFor(() => expect(screen.getByTestId('result-score')).toHaveTextContent(/^6 \/ 10$/));
+    await waitFor(() => expect(screen.getByTestId('result-score')).toHaveTextContent(/^9 \/ 15$/));
     expect(screen.getByText('Objectif du jour atteint 🎯')).toBeTruthy();
-    await waitFor(() => expect(screen.getByTestId('goal-value')).toHaveTextContent(/^10 \/ 10$/));
-    expect(Object.keys(useLearnerStore.getState().progress)).toHaveLength(10);
+    await waitFor(() => expect(screen.getByTestId('goal-value')).toHaveTextContent(/^15 \/ 15$/));
+    expect(Object.keys(useLearnerStore.getState().progress)).toHaveLength(15);
   });
 
   it('BUG-01 : boutons d’évaluation désactivés pendant le retournement, actifs ensuite', async () => {

@@ -225,3 +225,39 @@ Suite à la « Recette v1.1 — Mots du jour » (docs/05-rapport-qa.md). Aucune 
 | V11-04 | **Non corrigé, documenté** : react-native-web ignore `importantForAccessibility` / `accessibilityElementsHidden` ; correction fiable seulement avec des essais VoiceOver/TalkBack (non disponibles), donc laissée en réserve. | `src/components/DailyWordRow.tsx` |
 
 Tests ajoutés (`qa-review.test.tsx`) : minuit (liste vide d'elle-même), « Réviser » après minuit sans passe de la veille, fin de passe à 320×568, vidage à la sortie. `docs/design/rendu-revision.png` : écran de fin à 360×740 régénéré.
+
+# v1.2 — 15 cartes par jour et traduction des exemples
+
+Source : `docs/02-spec-pm.md` §16 à §22 (RG-140 → RG-164, US-17 → US-23, D-09 → D-18 approuvées), `docs/03-design.md` section v1.2. Aucune dépendance ajoutée ; `package.json` inchangé.
+
+## Traçabilité US → fichiers
+
+| US / RG | Implémentation | Tests |
+|---|---|---|
+| US-17 (RG-140 → 145) | `domain/session.ts` : `SESSION_SIZE = 15`, `MAX_NEW_PER_SESSION = 5` (l'algorithme de complément RG-142 est inchangé, générique) ; `components/messages.ts` et `app/(tabs)/learn.tsx` dérivent le nombre de `SESSION_SIZE` | `domain/__tests__/session.test.ts` (tableau RG-142, 200 graines × 23² combinaisons, pools 0/1/14/15/16, rng constant), `__tests__/v12-textes.test.tsx` |
+| US-18 (RG-146 → 149) | `domain/types.ts` : options `[10, 15, 20, 30]`, défaut 15 ; `domain/learnerState.ts` : `migrateLearnerData(persisted, fromVersion)` pure ; `store/useLearnerStore.ts` : `STORAGE_VERSION = 2`, `migrate` l'appelle (la conversion 10 → 15 n'est jamais dans `sanitizePersistedData`) | `store/__tests__/migration-v2.test.ts` (v1 avec 10/20/30/absent/invalide/25, v2, v3, corrompu, idempotence, relances AsyncStorage) |
+| US-19 (RG-152, 153) | aucun changement de code (test hebdo et Mots du jour inchangés) | `v12-textes.test.tsx` (9/10/15/50 vus, première session → 15 questions) |
+| US-20 (RG-155, 159 → 162, 164) | `data/words.ts` : `exampleFr` (200/200) ; `domain/types.ts` : `Word.exampleFr` ; `components/Flashcard.tsx` : bloc « En français » dans l'encart, `ScrollView` interne, indice de défilement, `wrapper.minHeight` 280, traduction 28/34 sous 640 pt ; partagé par `app/session.tsx` et `app/review-run.tsx` (spread du mot) | `__tests__/exemple-fr.test.tsx` |
+| US-21 | `components/DailyWordRow.tsx` : ligne FR sous l'exemple, sans 🔊 | idem |
+| US-22 (RG-163) | `accessibilityLanguage` + `lang` `fr-FR` (`FR_TEXT_PROPS`), annonce `backAnnouncement`, libellé de ligne étendu | idem |
+| US-23 (RG-156 → 158) | traductions rédigées par le Développeur ; relecture humaine RG-158 à faire par le QA | `domain/__tests__/words.test.ts` (9 contrôles sur 200 mots + test négatif), `__tests__/typographie.test.ts` |
+
+Décisions : l'espace insécable est écrite ` ` dans `words.ts` ; contrôle 8 de RG-157 interprété comme « le mot anglais cible n'apparaît pas tel quel », liste blanche commentée `train`, `promotion`, `hotel` (identiques ou sans accent en français) ; `exampleFr` vide à l'exécution → bloc non rendu ; la traduction n'est jamais passée à `speakEnglish`.
+
+## Tests existants adaptés (la règle change, aucun supprimé ni affaibli)
+- `session.test.ts` : 10 → 15, 3/7 → 5/10, pool k < 10 → k < 15, « 10 nouveaux » → 15 ; ajout des lignes du tableau RG-142.
+- `qa-domain.test.ts` : formule `min(15, pool)`, `max(5, 15 − révisions)` sur 21 × 21 combinaisons (avant 14 × 14) ; rng constant → 15 ; `dailyGoal` invalide : l'entrée « 15 » (devenue valide) est remplacée par 25, attendu 15.
+- `learnerState.test.ts`, `useLearnerStore.test.ts` : objectif invalide → défaut 15 (avant 10).
+- `v2-components.test.tsx` : « 15 premiers mots ».
+- `flows.test.tsx`, `qa-flows.test.tsx`, `review-flows.test.tsx` : parcours de 15 cartes, « Carte n / 15 », récap « 9 / 15 », objectif « 15 / 15 », « 5 nouveaux + 10 révisions » ; AC-14.5 (`STORAGE_VERSION` 1) devient 2 (remplacé par AC-18.4).
+- `domain/__tests__/helpers.ts` : `fakeWord` reçoit `exampleFr`.
+
+## Vérifications
+- `npx tsc --noEmit` : 0 erreur. `npx jest` : 27 suites, 327 tests verts (261 → 327 pour cette étape ; 250 avant v1.2 en comptant les suites adaptées).
+- `npx expo export --platform web` OK ; Playwright (Chromium) à 390×844, 360×740 et 320×568, 87 contrôles OK : migration (état v1 avec `dailyGoal: 10` → 15, version 2, choix 10 conservé après 2 relances), réglages (4 segments de 67×48 pt, 15 actif, pas de défilement horizontal), liste Mots du jour (4 lignes avec traduction, `lang="fr-FR"`), verso court et long (traduction exacte, bouton « Je savais » atteignable, indice de défilement ⇔ débordement), passe de révision, session neuve de 15 cartes de bout en bout (« Carte 1 / 15 » → « 15 / 15 », objectif atteint, stockage v2), aucune requête externe, aucune erreur JS. Rendu : `docs/design/rendu-v12.png`.
+- `expo lint` non exécutable ici (pas de configuration ESLint, installation bloquée par le proxy).
+
+## Points ouverts
+- Relecture RG-158 des 200 traductions par le QA (relecteur francophone distinct).
+- À 320×568 le verso défile même pour un exemple court (≈ 20 pt mesurés), comme prévu au design.
+- Sur le web, `SegmentedControl` n'expose pas `aria-checked` (react-native-web) : comportement antérieur, non modifié ; l'état actif reste visible.
